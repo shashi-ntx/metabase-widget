@@ -1,0 +1,32 @@
+{
+  "dashboard_id": 12,
+  "dashboard_url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/dashboard/12",
+  "dashboard_name": "shashi-storage-widget-automation",
+  "cards": [
+    {
+      "id": 223,
+      "name": "Column Sorting Usage on Storage Container List",
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/223"
+    },
+    {
+      "id": 224,
+      "name": "Row Link Clicks on Storage Container List",
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/224"
+    },
+    {
+      "id": 225,
+      "name": "Checkbox Selections on Storage Container List",
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/225"
+    },
+    {
+      "id": 226,
+      "name": "View-By Changes on Storage Container List",
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/226"
+    },
+    {
+      "id": 227,
+      "name": "Custom View Creations",
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/227"
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+Page,Subpage,Things to capture,Telemetry Data
+Storage Container - List,Storage Container List :  Table,"> Use of sorting on columns
+> Use of links in rows - clusters (i.e. whatever fields are links in the table )
+> Use of checkboxes (intent to do multi-entity actions )","sort:
+    ""actionType"": ""sort_column.<coulumn key>"",
+    ""pageSection"": ""storage_container.eb"",
+    ""subPageSection"": """",
+    ""destinationName"": ""storage_container/list""
+
+Row clicks:
+    ""actionType"": ""container_name.click"",
+    ""pageSection"": ""storage_container.eb"",
+    ""subPageSection"": ""eb_list"",
+    ""destinationName"": ""storage_container/list""
+
+checkbox:
+    ""actionType"": ""listview.select"",
+    ""pageSection"": ""storage_container.eb"",
+    ""subPageSection"": ""eb_list"",
+    ""destinationName"": ""storage_container/list""
+"
+Storage Container - List,Storage Container List :  View By,"> How often do users change columns views ?
+> Do users create custom views ?
+> What columns are sought/ added the most in custom views ?","{
+    ""actionType"": <selected view>,
+    ""pageSection"": ""storage_container.eb"",
+    ""subPageSection"": ""view_by_dropdown"",
+    ""destinationName"": ""\""Storage Containers\""/List""
+}"
+Storage Container - List,Storage Container List :  Group By,"> What are the most used. 'group-by' values ?
+> How often do users change 'group-by' values ?","{
+    ""actionType"": <selected group-by>,
+    ""pageSection"": ""storage_container.eb"",
+    ""subPageSection"": ""group_by_dropdown"",
+    ""destinationName"": ""\""Storage Containers\""/List""
+}"
+Storage Container - List,Storage Container List :  Filter,"> What are the most commonly used filters ?
+> How often do users interact with filters ?","{
+    ""actionType"": ""filter.<filter name>"",
+    ""pageSection"": ""storage_container.eb"",
+    ""subPageSection"": ""list_filter"",
+    ""destinationName"": ""storage_container/list""
+}"
+Storage Container - List,Storage Container List : Actions ,> Do users select multiple entities before clicking on 'Actions',"{
+    ""actionType"": ""listview.select"",
+    ""pageSection"": ""storage_container.eb"",
+    ""subPageSection"": ""eb_list"",
+    ""destinationName"": ""storage_container/list""
+}"
+Storage Container - List,Storage Container List : Actions : Update,> Update : What are the options/ fields that the users interacts with most ?,"{
+    ""actionType"": ""input_change.<input key>"",
+    ""pageSection"": ""update_storage_container"",
+    ""subPageSection"": """",
+    ""destinationName"": ""storage_container/update_form""
+}"
+Storage Container -  List > Create Storage Container,Storage Container List : Create Storage Container,"> How frequently are they creating a storage container ?
+
+> Create workflow : What options in advance settings are used the most ? (capacity dedup, erasure coding, compression, replication factor)
+> Create workflow : Do users interact with reserved capacity and advertised capacity ?
+> Create workflow: Do users interact with 'Filesystem allowlists?'
+
+> Do users interact with the [i] and [?] mark icons beside properties.
+> Do users interact with [?] on the header.
+> Do users click on 'X"" on 'Cancel' to close the modal without changes.
+> How much time does the user spend in creating the storage container ? Once advanvced settings are opened v/s When they aren't opened ?
+
+> [Feature use] : Do they hover/click at the information banner/space around fields (Replication Factor)","field interaction:
+    ""actionType"": ""input_change.<input key>"",
+    ""pageSection"": ""create_storage_container"",
+    ""subPageSection"": """",
+    ""destinationName"": ""storage_container/create_form""
+
+tooltip interaction:
+    ""actionType"": ""advertised_capacity.tooltip"",
+    ""pageSection"": ""create_storage_container"",
+    ""subPageSection"": """",
+    ""destinationName"": ""storage_container/create_form""
+{
+    ""actionType"": ""create_storage_container.start"",
+    ""pageSection"": ""storage_container.eb"",
+    ""subPageSection"": ""actions_view"",
+    ""destinationName"": ""storage_container/list""
+}
+"
