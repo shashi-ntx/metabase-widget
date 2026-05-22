@@ -1,0 +1,346 @@
+{
+  "dashboard_url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/dashboard/12",
+  "cards_created": 21,
+  "cards_failed": 0,
+  "cards": [
+    {
+      "num": "01",
+      "name": "Column Sorting Distribution",
+      "card_id": 292,
+      "display": "pie",
+      "size_x": 12,
+      "size_y": 8,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/292"
+    },
+    {
+      "num": "02",
+      "name": "Row Link Clicks Over Time",
+      "card_id": 293,
+      "display": "line",
+      "size_x": 12,
+      "size_y": 7,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/293"
+    },
+    {
+      "num": "03",
+      "name": "Checkbox Selections Over Time",
+      "card_id": 294,
+      "display": "line",
+      "size_x": 12,
+      "size_y": 7,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/294"
+    },
+    {
+      "num": "04",
+      "name": "View Changes Over Time",
+      "card_id": 295,
+      "display": "line",
+      "size_x": 12,
+      "size_y": 7,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/295"
+    },
+    {
+      "num": "05",
+      "name": "Custom View Creations",
+      "card_id": 296,
+      "display": "smartscalar",
+      "size_x": 6,
+      "size_y": 5,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/296"
+    },
+    {
+      "num": "06",
+      "name": "Most Added Columns in Custom Views",
+      "card_id": 297,
+      "display": "row",
+      "size_x": 12,
+      "size_y": 7,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/297"
+    },
+    {
+      "num": "07",
+      "name": "Most Used Group-By Values",
+      "card_id": 298,
+      "display": "row",
+      "size_x": 12,
+      "size_y": 7,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/298"
+    },
+    {
+      "num": "08",
+      "name": "Group-By Changes Over Time",
+      "card_id": 299,
+      "display": "line",
+      "size_x": 12,
+      "size_y": 7,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/299"
+    },
+    {
+      "num": "09",
+      "name": "Most Used Filters",
+      "card_id": 300,
+      "display": "pie",
+      "size_x": 12,
+      "size_y": 8,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/300"
+    },
+    {
+      "num": "10",
+      "name": "Filter Interactions Over Time",
+      "card_id": 301,
+      "display": "line",
+      "size_x": 12,
+      "size_y": 7,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/301"
+    },
+    {
+      "num": "11",
+      "name": "Multi-Entity Selections",
+      "card_id": 302,
+      "display": "smartscalar",
+      "size_x": 6,
+      "size_y": 5,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/302"
+    },
+    {
+      "num": "12",
+      "name": "Most Interacted Update Form Fields",
+      "card_id": 303,
+      "display": "pie",
+      "size_x": 12,
+      "size_y": 8,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/303"
+    },
+    {
+      "num": "13",
+      "name": "Storage Container Creations Over Time",
+      "card_id": 304,
+      "display": "line",
+      "size_x": 12,
+      "size_y": 7,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/304"
+    },
+    {
+      "num": "14",
+      "name": "Most Used Advanced Settings",
+      "card_id": 305,
+      "display": "pie",
+      "size_x": 12,
+      "size_y": 8,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/305"
+    },
+    {
+      "num": "15",
+      "name": "Reserved vs Advertised Capacity",
+      "card_id": 306,
+      "display": "bar",
+      "size_x": 12,
+      "size_y": 8,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/306"
+    },
+    {
+      "num": "16",
+      "name": "Filesystem Allowlist Interactions",
+      "card_id": 307,
+      "display": "smartscalar",
+      "size_x": 6,
+      "size_y": 5,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/307"
+    },
+    {
+      "num": "17",
+      "name": "Tooltip Icon Interactions",
+      "card_id": 308,
+      "display": "bar",
+      "size_x": 12,
+      "size_y": 8,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/308"
+    },
+    {
+      "num": "18",
+      "name": "Header Help Icon Clicks",
+      "card_id": 309,
+      "display": "smartscalar",
+      "size_x": 6,
+      "size_y": 5,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/309"
+    },
+    {
+      "num": "19",
+      "name": "Modal Dismissals \u2014 Close vs Cancel",
+      "card_id": 310,
+      "display": "bar",
+      "size_x": 12,
+      "size_y": 8,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/310"
+    },
+    {
+      "num": "20",
+      "name": "Storage Container Creation Duration",
+      "card_id": 311,
+      "display": "table",
+      "size_x": 18,
+      "size_y": 8,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/311"
+    },
+    {
+      "num": "21",
+      "name": "Replication Factor Info Banner Interactions",
+      "card_id": 312,
+      "display": "smartscalar",
+      "size_x": 6,
+      "size_y": 5,
+      "url": "https://jerome-marshall-1.umsvm.nutanix.com:3300/question/312"
+    }
+  ],
+  "layout": [
+    {
+      "card_id": 292,
+      "col": 0,
+      "row": 0,
+      "size_x": 12,
+      "size_y": 8
+    },
+    {
+      "card_id": 293,
+      "col": 0,
+      "row": 8,
+      "size_x": 12,
+      "size_y": 7
+    },
+    {
+      "card_id": 294,
+      "col": 0,
+      "row": 15,
+      "size_x": 12,
+      "size_y": 7
+    },
+    {
+      "card_id": 295,
+      "col": 0,
+      "row": 22,
+      "size_x": 12,
+      "size_y": 7
+    },
+    {
+      "card_id": 296,
+      "col": 12,
+      "row": 22,
+      "size_x": 6,
+      "size_y": 5
+    },
+    {
+      "card_id": 297,
+      "col": 0,
+      "row": 29,
+      "size_x": 12,
+      "size_y": 7
+    },
+    {
+      "card_id": 298,
+      "col": 0,
+      "row": 36,
+      "size_x": 12,
+      "size_y": 7
+    },
+    {
+      "card_id": 299,
+      "col": 0,
+      "row": 43,
+      "size_x": 12,
+      "size_y": 7
+    },
+    {
+      "card_id": 300,
+      "col": 0,
+      "row": 50,
+      "size_x": 12,
+      "size_y": 8
+    },
+    {
+      "card_id": 301,
+      "col": 0,
+      "row": 58,
+      "size_x": 12,
+      "size_y": 7
+    },
+    {
+      "card_id": 302,
+      "col": 12,
+      "row": 58,
+      "size_x": 6,
+      "size_y": 5
+    },
+    {
+      "card_id": 303,
+      "col": 0,
+      "row": 65,
+      "size_x": 12,
+      "size_y": 8
+    },
+    {
+      "card_id": 304,
+      "col": 0,
+      "row": 73,
+      "size_x": 12,
+      "size_y": 7
+    },
+    {
+      "card_id": 305,
+      "col": 0,
+      "row": 80,
+      "size_x": 12,
+      "size_y": 8
+    },
+    {
+      "card_id": 306,
+      "col": 0,
+      "row": 88,
+      "size_x": 12,
+      "size_y": 8
+    },
+    {
+      "card_id": 307,
+      "col": 12,
+      "row": 88,
+      "size_x": 6,
+      "size_y": 5
+    },
+    {
+      "card_id": 308,
+      "col": 0,
+      "row": 96,
+      "size_x": 12,
+      "size_y": 8
+    },
+    {
+      "card_id": 309,
+      "col": 12,
+      "row": 96,
+      "size_x": 6,
+      "size_y": 5
+    },
+    {
+      "card_id": 310,
+      "col": 0,
+      "row": 104,
+      "size_x": 12,
+      "size_y": 8
+    },
+    {
+      "card_id": 311,
+      "col": 0,
+      "row": 112,
+      "size_x": 18,
+      "size_y": 8
+    },
+    {
+      "card_id": 312,
+      "col": 0,
+      "row": 120,
+      "size_x": 6,
+      "size_y": 5
+    }
+  ],
+  "errors": []
+}

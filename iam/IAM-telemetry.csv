@@ -1,0 +1,440 @@
+Section / Page,Priority,Experience Question,Status,Telemetry Data,Measured by Tracking,Generic question?
+Role list ,P0,How often do users visit this page? ,Implemented,"{
+    ""featName"": ""IAM"",
+    ""actionName"": ""nav_item.roles"",
+    ""actionType"": ""click"",
+    ""pageSection"": ""roles"",
+    ""subPageSection"": ""header"",
+    ""url"": ""/roles""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/44-role-list-page-visit-over-time",,
+Role list ,P0,How often do users create roles? ,Implemented,"create btn: {
+    ""featName"": ""Role"",
+    ""actionType"": ""click"",
+    ""pageSection"": ""Roles"",
+    ""subPageSection"": ""list_view"",
+    ""actionName"": ""create_role.newRole""
+}
+save: {
+    ""actionType"": ""click"",
+    ""actionName"": ""Save Role"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/46-role-creation-over-time",,
+Role create,P0,How often do users complete the role creation process vs. dropping before saving their roles?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""Exit Role Creation"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/48-create-roles-funnel",,
+Role list ,P0,Which system defined roles are being used? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""change_role.system_defined:Action Service User"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.create_authorization_policy"",
+    ""subPageSection"": ""choose_role""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/50-system-defined-roles-used",,
+Role list ,P0,Which roles do users clone the most? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""select_role:Backup Admin"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_from_existing_role""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/109-roles-cloned",,
+Role list ,P0,How many custom roles do people create? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""Save Role"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/110-custom-roles-created",,
+Role list ,P0,What actions do users take most commonly? (includes viewing details of roles),Implemented,"actions: dropdown: {
+    ""featName"": ""Role"",
+    ""actionType"": ""click"",
+    ""pageSection"": ""Roles"",
+    ""subPageSection"": ""actions_dropdown"",
+    ""actionName"": ""duplicate_role""
+}
+clicks on role name: {
+    ""featName"": ""Role"",
+    ""actionType"": ""click"",
+    ""pageSection"": ""Roles"",
+    ""subPageSection"": ""list_view"",
+    ""actionName"": ""role_details""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/111-common-actions",,
+"Role create , Role update",P0,How long do people spend on role creation? ,Implemented,"differnce between clicking the create role btn and completing the flow
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/51-role-create-avg-time-spent",,
+"Role create , Role update",P0,What do people filter and search the left hand side by? ,For the Future,,,
+"Role create , Role update",P0,Do people add individual operations or all operations for entities?,Implemented,"select group: {
+    ""featName"": ""Role"",
+    ""actionType"": ""click"",
+    ""pageSection"": ""form.create_role"",
+    ""subPageSection"": ""select_operations"",
+    ""actionName"": ""add_operation_group""
+}
+select one: {
+    ""actionType"": ""click"",
+    ""actionName"": ""add_operation"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role"",
+    ""subPageSection"": ""select_operations""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/113-add-individual-vs-all-group-operations",,
+"Role create , Role update",P0,"Is this possible: How many clicks / scrolls etc. do users do on the page before they add a permission? Essentially how easy is it to find what you are looking for, identify it correctly and then add it. ",Not feasible,,,
+"Role create , Role update",P1,How often do users add description?,Implemented,"{
+    ""actionType"": ""change"",
+    ""actionName"": ""Role Description"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/47-description-usage",,
+"Role create , Role update",P0,When people create custom roles which entitiy types and operations are added most frequently?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""add_operation:Add Disk To Cluster"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role"",
+    ""subPageSection"": ""select_operations""
+}
+{
+    ""featName"": ""Role"",
+    ""actionType"": ""click"",
+    ""pageSection"": ""form.create_role"",
+    ""subPageSection"": ""select_operations"",
+    ""actionName"": ""add_operation_group:disk""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/115-entity-types-usage",,
+"Role create , Role update",P0,How often do users remove operations during role create?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""remove_operation:View User"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/116-remove-operations-during-create",,
+"Role create , Role update",P1,Which operations do users remove during role create?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""remove_operation:View User"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/117-operations-removed-during-create/notebook",,
+"Role create , Role update",P0,How often do users save their roles vs save and go to policy creation?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""save_role"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role"",
+    ""subPageSection"": ""footer""
+}
+{
+    ""actionType"": ""click"",
+    ""actionName"": ""save_role_create_policy"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role"",
+    ""subPageSection"": ""footer""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/118-save-vs-save-and-go-to-create",,
+Role : related operations ,P0,How often do people click on the related operations icon? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""view_related_operations:Create Account"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role"",
+    ""subPageSection"": ""select_operations""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/126-related-operations-icon-clicks-by-operation",,
+Role : related operations ,P0,How often do users add operations that have related operations? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""add_operation.with_related_operations:Create Account"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role"",
+    ""subPageSection"": ""select_operations""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/127-add-operations-with-related-operations",,
+Role : related operations ,P1,How often do users accept all the related operations for a given operation? ,Not feasible,,,
+Role : related operations ,P0,Which related operations do users usually remove? ,Not feasible,,,
+Role : related operations ,P0,For which common operations do users remove related operations?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""remove_all_related_operation.Create Account"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role"",
+    ""subPageSection"": ""role_related_operations""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/128-ops-with-related-ops-removed",,
+Role : related operations ,P0,How often do users go back to a key operations for which they have addd or declined to add related operations? ,Doubt,,,
+Role : related operations ,P0,How often are users adding operations that have multiple versions? ,Doubt,,,
+Role : related operations ,P0,How often are users coming back to add operations that have multiple versions?  ,Doubt,,,
+Role : related operations ,P0,How often do users ignore the warning about related operations missing before they save the role?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""save_role_with_missing_operations"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role""
+}
+https://jerome-marshall-1.umsvm.nutanix.com:3300/question/129-save-role-despite-missing-ops-warning",,
+Role update ,P1,How often do users remove related operations from the right hand side?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""remove_operation:Create Custom Provider"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role""
+}",,
+Role list ,P0,How often do users update roles? ,Implemented,"{
+    ""featName"": ""Role"",
+    ""actionType"": ""click"",
+    ""pageSection"": ""Roles"",
+    ""subPageSection"": ""actions_dropdown"",
+    ""actionName"": ""update_role""
+}",,
+Role update ,P0,How often do users use the 'show changes' feature? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""toggle_show_changes:on/off"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.update_role""
+}",,
+Role update,P1,From where do users enter the role update workflow? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""update"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""Role Details"",
+    ""subPageSection"": ""header_actions""
+}
+{
+    ""featName"": ""Role"",
+    ""actionType"": ""click"",
+    ""pageSection"": ""Roles"",
+    ""subPageSection"": ""actions_dropdown"",
+    ""actionName"": ""update_role""
+}",,
+Role actions,P0,How often do users delete roles? ,Implemented,"{
+    ""featName"": ""Role"",
+    ""actionType"": ""click"",
+    ""pageSection"": ""Roles"",
+    ""subPageSection"": ""actions_dropdown"",
+    ""actionName"": ""delete_role""
+}
+{
+    ""actionType"": ""click"",
+    ""actionName"": ""delete"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""Role Details"",
+    ""subPageSection"": ""header_actions""
+}",,
+Role actions,P1,From where do users enter the role delete workflow? ,Implemented,"{
+    ""featName"": ""Role"",
+    ""actionType"": ""click"",
+    ""pageSection"": ""Roles"",
+    ""subPageSection"": ""actions_dropdown"",
+    ""actionName"": ""delete_role""
+}
+{
+    ""actionType"": ""click"",
+    ""actionName"": ""delete"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""Role Details"",
+    ""subPageSection"": ""header_actions""
+}",,
+Policy actions,P0,How often do users delete policies? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""delete:Authorization Policy test"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""Authorization Policies"",
+    ""subPageSection"": ""actions_dropdown""
+}",,
+Policy actions,P1,From where do users enter the policy delete workflow? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""duplicate"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""Authorization Policy Details"",
+    ""subPageSection"": ""header_actions""
+}
+{
+    ""actionType"": ""click"",
+    ""actionName"": ""delete:Authorization Policy test"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""Authorization Policies"",
+    ""subPageSection"": ""actions_dropdown""
+}",,
+Role actions,P0,How often do users try to delete roles that have policies assigned? ,Not feasible,,,
+Role details,P0,How much time do they spend per tab? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""duplicate"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""Role Details"",
+    ""subPageSection"": ""header_actions""
+}",,
+Role details,P0,What actions do users take most commonly?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""manage"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""Role Details"",
+    ""subPageSection"": ""header_actions""
+}",,
+Auth policy create,P1,From where do users enter the policy creation workflow? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""Create Authorization Policy"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""Authorization Policies""
+}
+{
+    ""actionType"": ""click"",
+    ""actionName"": ""save_role_create_policy"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role"",
+    ""subPageSection"": ""footer""
+}",,
+Auth policy create,P0,How often do users create new authorization policies?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""create_policy"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""Authorization Policies""
+}
+{
+    ""actionType"": ""click"",
+    ""actionName"": ""save_role_create_policy"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role"",
+    ""subPageSection"": ""footer""
+}",,
+Auth policy create,P0,Which system defined roles do users utilize the most in policies? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""change_role.system_defined:Category Admin"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.create_authorization_policy"",
+    ""subPageSection"": ""choose_role""
+}",,
+"Auth policy create, Policy update",P0,Do users typically create configured access or full access policies? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""select_entity_type:fullAccess"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.edit_authorization_policy""
+}
+{
+    ""actionType"": ""click"",
+    ""actionName"": ""select_entity_type:configureAccess"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.edit_authorization_policy""
+}",,
+"Auth policy create, Policy update",P0,How long does it take users to create policies? ,Implemented,"difference between form opened and saved.
+{
+    ""actionType"": ""click"",
+    ""actionName"": ""save_policy"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": """"form.edit_authorization_policy""
+}",,
+"Auth policy create, Policy update",P0,How often do users check the future access box? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""change_future_access:true"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.edit_authorization_policy""
+}",,
+"Auth policy create, Policy update",P0,How often do users uncheck the automatic access box?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""change_automatic_access:false"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.edit_authorization_policy""
+}",,
+"Auth policy create, Policy update",P0,How often do users select 'all entities' in the entity selector dropdown?,Implemented,"{
+    ""actionType"": ""change"",
+    ""actionName"": ""entity_type:All Entity Types"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.create_authorization_policy""
+}",,
+Auth policy create,P0,"Policy distribution between ones focussed on individual users, user groups, service accounts or some combination of these? ",Not feasible,,,
+IDP list,P0,How many users have more than 1 IDP configured? ,Not feasible,This info can be got from pluse backend ,,
+"Auth policy create, Policy update",P0,How often do users use the advanced filter? ,Implemented,"{
+    ""actionType"": ""change"",
+    ""actionName"": ""scope_filter:advanced"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.create_authorization_policy""
+}",,
+Auth policy create,P0,How many conditions do users add when creating an advanced filter?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""add_condition"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.create_authorization_policy"",
+    ""subPageSection"": ""advanced_filter""
+}",,
+"Auth policy create, Policy update",P0,How much time do users spend on each step of the policy creation workflow?,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""next"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.create_authorization_policy"",
+    ""subPageSection"": ""step_1""
+}",,
+Auth policy create,P0,How often do users name policies?,Doubt,,,
+"Auth policy create, Policy update",P0,How often do users click on 'view entity types' on the 2nd step? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""view_entity_types"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.create_authorization_policy""
+}",,
+Auth policy create,P0,Distribution of entity types that users grant access to in policy create? ,Not feasible,,,
+"Auth policy create, Policy update",P0,Distribution of entity types that users grant access to in policy update? ,Not feasible,,,
+Auth policy details,P0,How much time do users spend on the policy details page? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""view_policy_details"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""Authorization Policies""
+}
+{
+    ""actionType"": ""click"",
+    ""actionName"": ""close_policy"",
+    ""featName"": ""Authorization Policy""
+}",,
+Auth policy details,P0,Which are the most commonly taken actions from the policy details page? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""duplicate"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""Authorization Policy Details"",
+    ""subPageSection"": ""header_actions""
+}",,
+Policy update,P0,"When users update policies, how often do they change the role?",Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""change_role.system_defined:Action Service User"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.edit_authorization_policy"",
+    ""subPageSection"": ""choose_role""
+}
+{
+    ""actionType"": ""click"",
+    ""actionName"": ""change_role:VPC Admin Copy 1"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""form.edit_authorization_policy"",
+    ""subPageSection"": ""choose_role""
+}",,
+Policy update,P0,When editing a policy which are the entitiy types do they add most frequently? ,Not feasible,,,
+Policy update,P0,When editing a policy which are the entitiy types do they remove most frequently? ,Not feasible,,,
+Policy actions,P0,How often do users delete policies? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""delete:Authorization Policy test"",
+    ""featName"": ""Authorization Policy"",
+    ""pageSection"": ""Authorization Policies"",
+    ""subPageSection"": ""actions_dropdown""
+}",,
+,,How many 'local users' do customers add? ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""add_local_user"",
+    ""featName"": ""Identity"",
+    ""pageSection"": ""Identities"",
+    ""subPageSection"": ""list_view""
+}",,
+,,How much time do users spend in each of the tabs in the identities page?,Implemented,"{
+    ""featName"": ""IAM"",
+    ""actionName"": ""nav_item.roles"",
+    ""actionType"": ""click"",
+    ""pageSection"": ""roles"",
+    ""subPageSection"": ""header"",
+    ""url"": ""/users""
+}{
+    ""actionType"": ""click"",
+    ""actionName"": ""switch_tab:Imported Users"",
+    ""featName"": ""Identity"",
+    ""pageSection"": ""Identities"",
+    ""subPageSection"": ""list_view""
+}",,
+,,Guided Experience placeholder - in the create role screen. ,Implemented,"{
+    ""actionType"": ""click"",
+    ""actionName"": ""guided_experience:enable"",
+    ""featName"": ""Role"",
+    ""pageSection"": ""form.create_role""
+}","(placeholder, please update)",
