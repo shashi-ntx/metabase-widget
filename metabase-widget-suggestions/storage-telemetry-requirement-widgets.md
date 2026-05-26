@@ -8,29 +8,29 @@ The **summary table** gives a scannable overview of every widget (type, tier, gr
 
 ## Summary
 
-| #   | Source row | Page / Subpage                              | Question                                                                  | Suggested Widget        | Alternative Widget          | Grid Size | Telemetry Payload                                                                                                                                    |
-| --- | ---------- | ------------------------------------------- | ------------------------------------------------------------------------- | ----------------------- | --------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 01  | Row 1 · Q1 | Storage Container - List / Table            | Which columns do users sort on most?                                      | Tier 2 · Pie chart      | Tier 2 · Line chart         | 12 × 8    | `actionType: sort_column.<column key>`, `pageSection: storage_container.eb`, `destinationName: storage_container/list`                               |
-| 02  | Row 1 · Q2 | Storage Container - List / Table            | How often do users click row links in the list?                           | Tier 1 · Bar chart      | Tier 1 · Line chart         | 12 × 8    | `actionType: container_name.click / cluster_name.click`, `pageSection: storage_container.eb`, `destinationName: storage_container/list`              |
-| 03  | Row 1 · Q3 | Storage Container - List / Table            | How often do users select checkboxes for multi-entity actions?            | Tier 1 · Line chart     | Tier 1 · Scalar (trend)     | 12 × 7    | `actionType: listview.select`, `pageSection: storage_container.eb`, `subPageSection: eb_list`, `destinationName: storage_container/list`             |
-| 04  | Row 2 · Q1 | Storage Container - List / View By          | How often do users change column views?                                   | Tier 1 · Line chart     | Tier 1 · Scalar (trend)     | 12 × 7    | `actionType: <selected view>`, `pageSection: storage_container.eb`, `subPageSection: view_by_dropdown`, `destinationName: "Storage Containers"/List` |
-| 05  | Row 2 · Q2 | Storage Container - List / View By          | Do users create custom views?                                             | Tier 1 · Scalar (trend) | Tier 1 · Line chart         | 6 × 5     | `actionType: <custom view action>`, `pageSection: storage_container.eb`, `subPageSection: view_by_dropdown`                                          |
-| 06  | Row 2 · Q3 | Storage Container - List / View By          | What columns are added the most in custom views?                          | Tier 1 · Row chart      | Tier 1 · Pie chart          | 12 × 7    | `actionType: <selected view>`, `pageSection: storage_container.eb`, `subPageSection: view_by_dropdown`                                               |
-| 07  | Row 3 · Q1 | Storage Container - List / Group By         | What are the most used group-by values?                                   | Tier 1 · Row chart      | Tier 1 · Pie chart          | 12 × 7    | `actionType: <selected group-by>`, `pageSection: storage_container.eb`, `subPageSection: group_by_dropdown`                                          |
-| 08  | Row 3 · Q2 | Storage Container - List / Group By         | How often do users change group-by values?                                | Tier 1 · Line chart     | Tier 1 · Scalar (trend)     | 12 × 7    | `actionType: <selected group-by>`, `pageSection: storage_container.eb`, `subPageSection: group_by_dropdown`                                          |
-| 09  | Row 4 · Q1 | Storage Container - List / Filter           | What are the most commonly used filters?                                  | Tier 2 · Pie chart      | Tier 2 · Row chart          | 12 × 8    | `actionType: filter.<filter name>`, `pageSection: storage_container.eb`, `subPageSection: list_filter`, `destinationName: storage_container/list`    |
-| 10  | Row 4 · Q2 | Storage Container - List / Filter           | How often do users interact with filters?                                 | Tier 1 · Line chart     | Tier 1 · Scalar (trend)     | 12 × 7    | `actionType: filter.<filter name>`, `pageSection: storage_container.eb`, `subPageSection: list_filter`, `destinationName: storage_container/list`    |
-| 11  | Row 5 · Q1 | Storage Container - List / Actions          | Do users select multiple entities before clicking on Actions?             | Tier 1 · Scalar (trend) | Tier 1 · Line chart         | 6 × 5     | `actionType: listview.select`, `pageSection: storage_container.eb`, `subPageSection: eb_list`, `destinationName: storage_container/list`             |
-| 12  | Row 6 · Q1 | Storage Container - List / Actions : Update | What are the fields users interact with most in the Update form?          | Tier 2 · Pie chart      | Tier 2 · Row chart          | 12 × 8    | `actionType: input_change.<input key>`, `pageSection: update_storage_container`, `destinationName: storage_container/update_form`                    |
-| 13  | Row 7 · Q1 | Storage Container - Create                  | How frequently are users creating a storage container?                    | Tier 1 · Line chart     | Tier 1 · Scalar (trend)     | 12 × 7    | `actionType: create_storage_container.start`, `pageSection: storage_container.eb`, `subPageSection: actions_view`                                    |
-| 14  | Row 7 · Q2 | Storage Container - Create                  | What advanced-settings options are used the most?                         | Tier 2 · Pie chart      | Tier 2 · Row chart          | 12 × 8    | `actionType: input_change.<input key>`, `pageSection: create_storage_container`, `destinationName: storage_container/create_form`                    |
-| 15  | Row 7 · Q3 | Storage Container - Create                  | Do users interact with reserved capacity and advertised capacity fields?  | Tier 1 · Bar chart      | Tier 1 · Line chart         | 12 × 8    | `actionType: input_change.reserved_capacity / input_change.advertised_capacity`, `pageSection: create_storage_container`                             |
-| 16  | Row 7 · Q4 | Storage Container - Create                  | Do users interact with Filesystem Allowlists?                             | Tier 1 · Scalar (trend) | Tier 1 · Line chart         | 6 × 5     | `actionType: input_change.filesystem*`, `pageSection: create_storage_container`                                                                      |
-| 17  | Row 7 · Q5 | Storage Container - Create                  | Do users interact with the tooltip icons beside properties?               | Tier 1 · Bar chart      | Tier 1 · Line chart         | 12 × 8    | `actionType: *.tooltip`, `pageSection: create_storage_container`                                                                                     |
-| 18  | Row 7 · Q6 | Storage Container - Create                  | Do users interact with the [?] help icon on the header?                   | Tier 1 · Scalar (trend) | Tier 1 · Line chart         | 6 × 5     | `actionType: header.help*`, `pageSection: create_storage_container`                                                                                  |
-| 19  | Row 7 · Q7 | Storage Container - Create                  | Do users click X or Cancel to close the modal without changes?            | Tier 1 · Bar chart      | Tier 1 · Line chart         | 12 × 8    | `actionType: modal.close / modal.cancel`, `pageSection: create_storage_container`                                                                    |
-| 20  | Row 7 · Q8 | Storage Container - Create                  | How much time does the user spend creating the storage container?         | Tier 3 · Table          | _No meaningful alternative_ | 18 × 8    | `actionType: create_storage_container.start + .submit`, `pageSection: create_storage_container`                                                      |
-| 21  | Row 7 · Q9 | Storage Container - Create                  | Do users hover or click the information banner around Replication Factor? | Tier 1 · Scalar (trend) | Tier 1 · Line chart         | 6 × 5     | `actionType: replication_factor.*`, `pageSection: create_storage_container`                                                                          |
+| #   | Source row | Page / Subpage                              | Question                                                                  | Suggested Widget                            | Alternative Widget                                                    | Grid Size | Telemetry Payload                                                                                                                                    |
+| --- | ---------- | ------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------- | --------------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 01  | Row 1 · Q1 | Storage Container - List / Table            | Which columns do users sort on most?                                      | Tier 2 · Pie chart                          | Tier 2 · Line chart                                                   | 12 × 8    | `actionType: sort_column.<column key>`, `pageSection: storage_container.eb`, `destinationName: storage_container/list`                               |
+| 02  | Row 1 · Q2 | Storage Container - List / Table            | How often do users click row links in the list?                           | Tier 1 · Bar chart (grouped by month)       | Tier 1 · Line chart                                                   | 12 × 8    | `actionType: container_name.click / cluster_name.click`, `pageSection: storage_container.eb`, `destinationName: storage_container/list`              |
+| 03  | Row 1 · Q3 | Storage Container - List / Table            | How often do users select checkboxes for multi-entity actions?            | Tier 1 · Line chart                         | Tier 1 · Scalar (trend)                                               | 12 × 7    | `actionType: listview.select`, `pageSection: storage_container.eb`, `subPageSection: eb_list`, `destinationName: storage_container/list`             |
+| 04  | Row 2 · Q1 | Storage Container - List / View By          | How often do users change column views?                                   | Tier 1 · Line chart                         | Tier 1 · Scalar (trend)                                               | 12 × 7    | `actionType: <selected view>`, `pageSection: storage_container.eb`, `subPageSection: view_by_dropdown`, `destinationName: "Storage Containers"/List` |
+| 05  | Row 2 · Q2 | Storage Container - List / View By          | Do users create custom views?                                             | Tier 1 · Scalar (trend)                     | Tier 1 · Line chart                                                   | 6 × 5     | `actionType: <custom view action>`, `pageSection: storage_container.eb`, `subPageSection: view_by_dropdown`                                          |
+| 06  | Row 2 · Q3 | Storage Container - List / View By          | What columns are added the most in custom views?                          | Tier 1 · Row chart                          | Tier 1 · Pie chart                                                    | 12 × 7    | `actionType: <selected view>`, `pageSection: storage_container.eb`, `subPageSection: view_by_dropdown`                                               |
+| 07  | Row 3 · Q1 | Storage Container - List / Group By         | What are the most used group-by values?                                   | Tier 1 · Row chart                          | Tier 1 · Pie chart                                                    | 12 × 7    | `actionType: <selected group-by>`, `pageSection: storage_container.eb`, `subPageSection: group_by_dropdown`                                          |
+| 08  | Row 3 · Q2 | Storage Container - List / Group By         | How often do users change group-by values?                                | Tier 1 · Line chart                         | Tier 1 · Scalar (trend)                                               | 12 × 7    | `actionType: <selected group-by>`, `pageSection: storage_container.eb`, `subPageSection: group_by_dropdown`                                          |
+| 09  | Row 4 · Q1 | Storage Container - List / Filter           | What are the most commonly used filters?                                  | Tier 2 · Pie chart                          | Tier 2 · Row chart                                                    | 12 × 8    | `actionType: filter.<filter name>`, `pageSection: storage_container.eb`, `subPageSection: list_filter`, `destinationName: storage_container/list`    |
+| 10  | Row 4 · Q2 | Storage Container - List / Filter           | How often do users interact with filters?                                 | Tier 1 · Line chart                         | Tier 1 · Scalar (trend)                                               | 12 × 7    | `actionType: filter.<filter name>`, `pageSection: storage_container.eb`, `subPageSection: list_filter`, `destinationName: storage_container/list`    |
+| 11  | Row 5 · Q1 | Storage Container - List / Actions          | Do users select multiple entities before clicking on Actions?             | Tier 1 · Scalar (trend)                     | Tier 1 · Line chart                                                   | 6 × 5     | `actionType: listview.select`, `pageSection: storage_container.eb`, `subPageSection: eb_list`, `destinationName: storage_container/list`             |
+| 12  | Row 6 · Q1 | Storage Container - List / Actions : Update | What are the fields users interact with most in the Update form?          | Tier 2 · Pie chart                          | Tier 2 · Row chart                                                    | 12 × 8    | `actionType: input_change.<input key>`, `pageSection: update_storage_container`, `destinationName: storage_container/update_form`                    |
+| 13  | Row 7 · Q1 | Storage Container - Create                  | How frequently are users creating a storage container?                    | Tier 1 · Line chart                         | Tier 1 · Scalar (trend)                                               | 12 × 7    | `actionType: create_storage_container.start`, `pageSection: storage_container.eb`, `subPageSection: actions_view`                                    |
+| 14  | Row 7 · Q2 | Storage Container - Create                  | What advanced-settings options are used the most?                         | Tier 2 · Pie chart                          | Tier 2 · Row chart                                                    | 12 × 8    | `actionType: input_change.<input key>`, `pageSection: create_storage_container`, `destinationName: storage_container/create_form`                    |
+| 15  | Row 7 · Q3 | Storage Container - Create                  | Do users interact with reserved capacity and advertised capacity fields?  | Tier 1 · Bar chart (grouped by month)       | Tier 1 · Line chart                                                   | 12 × 8    | `actionType: input_change.reserved_capacity / input_change.advertised_capacity`, `pageSection: create_storage_container`                             |
+| 16  | Row 7 · Q4 | Storage Container - Create                  | Do users interact with Filesystem Allowlists?                             | Tier 1 · Scalar (trend)                     | Tier 1 · Line chart                                                   | 6 × 5     | `actionType: input_change.filesystem*`, `pageSection: create_storage_container`                                                                      |
+| 17  | Row 7 · Q5 | Storage Container - Create                  | Do users interact with the tooltip icons beside properties?               | Tier 1 · Bar chart (grouped by month)       | Tier 1 · Line chart                                                   | 12 × 8    | `actionType: *.tooltip`, `pageSection: create_storage_container`                                                                                     |
+| 18  | Row 7 · Q6 | Storage Container - Create                  | Do users interact with the [?] help icon on the header?                   | Tier 1 · Scalar (trend)                     | Tier 1 · Line chart                                                   | 6 × 5     | `actionType: header.help*`, `pageSection: create_storage_container`                                                                                  |
+| 19  | Row 7 · Q7 | Storage Container - Create                  | Do users click X or Cancel to close the modal without changes?            | Tier 1 · Bar chart (grouped by month)       | Tier 1 · Line chart                                                   | 12 × 8    | `actionType: modal.close / modal.cancel`, `pageSection: create_storage_container`                                                                    |
+| 20  | Row 7 · Q8 | Storage Container - Create                  | How much time does the user spend creating the storage container?         | Tier 3 · Line chart (avg duration by month) | Tier 3 · Bar chart (grouped by month, with/without advanced settings) | 12 × 7    | `actionType: create_storage_container.start + .submit`, `pageSection: create_storage_container`                                                      |
+| 21  | Row 7 · Q9 | Storage Container - Create                  | Do users hover or click the information banner around Replication Factor? | Tier 1 · Scalar (trend)                     | Tier 1 · Line chart                                                   | 6 × 5     | `actionType: replication_factor.*`, `pageSection: create_storage_container`                                                                          |
 
 ---
 
@@ -116,9 +116,9 @@ ORDER BY TOTAL_SORTS DESC
 
 > "How often do users click row links (e.g. container name, cluster name) in the storage container list?"
 >
-> Shows which clickable entities in the table get the most clicks, revealing navigation priorities.
+> Shows which clickable entities in the table get the most clicks and how the pattern evolves over time.
 
-**Suggested Approach (Tier 1 · Bar chart)**
+**Suggested Approach (Tier 1 · Bar chart, grouped by month)**
 
 **Pick data:** Nusights Events Activitytype Default Historical Tbl Flat
 
@@ -131,28 +131,27 @@ ORDER BY TOTAL_SORTS DESC
 **Summarize:**
 
 - Metric: Count of rows
-- Group by: `Action Type`
+- Group by: `Timestamp` (Month), `Action Type`
 
-**Sort:** Count descending
-
-**Visualization:** Bar chart (vertical), grouped by `Action Type`, sorted descending. The table has multiple clickable entities — a bar chart shows which one users click most, making relative usage immediately visible.
+**Visualization:** Bar chart (vertical, grouped) with months on the x-axis and one colored bar per entity per month. Shows both relative magnitude and temporal trends side-by-side — the viewer can see which entity is clicked more and whether that pattern is shifting over time.
 
 **Grid size:** 12 × 8
 
-**Why these filters:** Multi-value filter on `Action Type` captures all row-link click events (container name, cluster name). Grouping by `Action Type` creates the comparison. Additional `.click` action types can be added to the filter as new clickable columns are introduced.
+**Why these filters:** Multi-value filter on `Action Type` captures all row-link click events (container name, cluster name). Grouping by `Timestamp` + `Action Type` creates the monthly comparison.
 
 **SQL equivalent (used for API creation):**
 
 ```sql
 SELECT
+  DATE_TRUNC('month', TIMESTAMP) AS MONTH,
   REPLACE(REPLACE(ACTION_TYPE, '.click', ''), '_', ' ') AS LINK_TYPE,
   COUNT(*) AS TOTAL_CLICKS
 FROM NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT
 WHERE PAGE_SECTION = 'storage_container.eb'
   AND ACTION_TYPE LIKE '%.click'
   AND DESTINATION_NAME = 'storage_container/list'
-GROUP BY LINK_TYPE
-ORDER BY TOTAL_CLICKS DESC
+GROUP BY MONTH, LINK_TYPE
+ORDER BY MONTH
 ```
 
 ---
@@ -174,7 +173,7 @@ ORDER BY TOTAL_CLICKS DESC
 - Metric: Count of rows
 - Group by: `Action Type`, `Timestamp` (Month)
 
-**Visualization:** Line chart with one series per entity. Shows how click patterns for each entity trend over time — useful if you want to see whether one entity is gaining or losing popularity.
+**Visualization:** Line chart with one series per entity. Shows how click patterns for each entity trend over time — useful if you prefer trend lines over side-by-side bars.
 
 **Grid size:** 12 × 7
 
@@ -840,9 +839,9 @@ ORDER BY TOTAL_INTERACTIONS DESC
 
 > "Do users interact with the reserved capacity and advertised capacity fields during storage container creation?"
 >
-> Shows whether both capacity fields see engagement and which one is used more.
+> Shows whether both capacity fields see engagement and how the pattern evolves over time.
 
-**Suggested Approach (Tier 1 · Bar chart)**
+**Suggested Approach (Tier 1 · Bar chart, grouped by month)**
 
 **Pick data:** Nusights Events Activitytype Default Historical Tbl Flat
 
@@ -855,38 +854,30 @@ ORDER BY TOTAL_INTERACTIONS DESC
 **Summarize:**
 
 - Metric: Count of rows
-- Group by: `Action Type`
+- Group by: `Timestamp` (Month), `Action Type`
 
-**Visualization:** Bar chart (vertical) with two bars. "X vs Y" with 2 items is a direct comparison.
+**Visualization:** Bar chart (vertical, grouped) with months on the x-axis and one colored bar per capacity field per month. Shows both relative magnitude and temporal trends — the viewer can see which capacity field is used more and whether usage is growing or declining.
 
 **Grid size:** 12 × 8
 
-**Why these filters:** Multi-value filter captures both capacity events.
+**Why these filters:** Multi-value filter captures both capacity events. Grouping by `Timestamp` + `Action Type` creates the monthly comparison.
 
 **SQL equivalent (used for API creation):**
 
 ```sql
-WITH labels AS (
-  SELECT 'Reserved Capacity' AS CAPACITY_TYPE, 'input_change.reserved_capacity' AS ACTION_KEY
-  UNION ALL
-  SELECT 'Advertised Capacity', 'input_change.advertised_capacity'
-),
-counts AS (
-  SELECT
-    ACTION_TYPE,
-    COUNT(*) AS TOTAL_INTERACTIONS
-  FROM NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT
-  WHERE PAGE_SECTION = 'create_storage_container'
-    AND ACTION_TYPE IN ('input_change.reserved_capacity', 'input_change.advertised_capacity')
-    AND DESTINATION_NAME = 'storage_container/create_form'
-  GROUP BY ACTION_TYPE
-)
 SELECT
-  l.CAPACITY_TYPE,
-  COALESCE(c.TOTAL_INTERACTIONS, 0) AS TOTAL_INTERACTIONS
-FROM labels l
-LEFT JOIN counts c ON l.ACTION_KEY = c.ACTION_TYPE
-ORDER BY TOTAL_INTERACTIONS DESC
+  DATE_TRUNC('month', TIMESTAMP) AS MONTH,
+  CASE
+    WHEN ACTION_TYPE = 'input_change.reserved_capacity' THEN 'Reserved Capacity'
+    WHEN ACTION_TYPE = 'input_change.advertised_capacity' THEN 'Advertised Capacity'
+  END AS CAPACITY_TYPE,
+  COUNT(*) AS TOTAL_INTERACTIONS
+FROM NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT
+WHERE PAGE_SECTION = 'create_storage_container'
+  AND ACTION_TYPE IN ('input_change.reserved_capacity', 'input_change.advertised_capacity')
+  AND DESTINATION_NAME = 'storage_container/create_form'
+GROUP BY MONTH, CAPACITY_TYPE
+ORDER BY MONTH
 ```
 
 ---
@@ -895,7 +886,20 @@ ORDER BY TOTAL_INTERACTIONS DESC
 
 **Title:** Capacity Field Interactions Over Time
 
-**Visualization:** Line chart with two series.
+**Pick data:** Nusights Events Activitytype Default Historical Tbl Flat
+
+**Filter:**
+
+- `Page Section` is `create_storage_container`
+- `Action Type` is any of `input_change.reserved_capacity`, `input_change.advertised_capacity`
+- `Destination Name` is `storage_container/create_form`
+
+**Summarize:**
+
+- Metric: Count of rows
+- Group by: `Action Type`, `Timestamp` (Month)
+
+**Visualization:** Line chart with two series. Useful if you prefer trend lines over side-by-side bars.
 
 **Grid size:** 12 × 7
 
@@ -957,9 +961,9 @@ ORDER BY MONTH
 
 > "Do users interact with the [i] and [?] tooltip icons beside properties in the create storage container form?"
 >
-> Shows how often users seek contextual help during container creation.
+> Shows how often users seek contextual help for each property and how the pattern evolves over time.
 
-**Suggested Approach (Tier 1 · Bar chart)**
+**Suggested Approach (Tier 1 · Bar chart, grouped by month)**
 
 **Pick data:** Nusights Events Activitytype Default Historical Tbl Flat
 
@@ -972,28 +976,27 @@ ORDER BY MONTH
 **Summarize:**
 
 - Metric: Count of rows
-- Group by: `Action Type`
+- Group by: `Timestamp` (Month), `Action Type`
 
-**Sort:** Count descending
-
-**Visualization:** Bar chart (vertical), sorted descending. Groups tooltip interactions by property name.
+**Visualization:** Bar chart (vertical, grouped) with months on the x-axis and one colored bar per tooltip property per month. Shows which tooltip properties attract the most help-seeking and whether that changes over time.
 
 **Grid size:** 12 × 8
 
-**Why these filters:** `contains tooltip` captures all tooltip events.
+**Why these filters:** `contains tooltip` captures all tooltip events. Grouping by `Timestamp` + `Action Type` creates the monthly comparison across tooltip properties.
 
 **SQL equivalent (used for API creation):**
 
 ```sql
 SELECT
+  DATE_TRUNC('month', TIMESTAMP) AS MONTH,
   REPLACE(ACTION_TYPE, '.tooltip', '') AS PROPERTY_NAME,
   COUNT(*) AS TOTAL_INTERACTIONS
 FROM NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT
 WHERE PAGE_SECTION = 'create_storage_container'
   AND ACTION_TYPE ILIKE '%tooltip%'
   AND DESTINATION_NAME = 'storage_container/create_form'
-GROUP BY PROPERTY_NAME
-ORDER BY TOTAL_INTERACTIONS DESC
+GROUP BY MONTH, PROPERTY_NAME
+ORDER BY MONTH
 ```
 
 ---
@@ -1002,7 +1005,20 @@ ORDER BY TOTAL_INTERACTIONS DESC
 
 **Title:** Tooltip Interactions Over Time
 
-**Visualization:** Line chart grouped by month.
+**Pick data:** Nusights Events Activitytype Default Historical Tbl Flat
+
+**Filter:**
+
+- `Page Section` is `create_storage_container`
+- `Action Type` contains `tooltip`
+- `Destination Name` is `storage_container/create_form`
+
+**Summarize:**
+
+- Metric: Count of rows
+- Group by: `Action Type`, `Timestamp` (Month)
+
+**Visualization:** Line chart with one series per tooltip property. Useful if you prefer trend lines over side-by-side bars.
 
 **Grid size:** 12 × 7
 
@@ -1064,9 +1080,9 @@ ORDER BY MONTH
 
 > "Do users click 'X' or 'Cancel' to close the create storage container modal without making changes?"
 >
-> Shows whether users prefer the X button or the Cancel button.
+> Shows whether users prefer the X button or the Cancel button, and how the pattern evolves over time.
 
-**Suggested Approach (Tier 1 · Bar chart)**
+**Suggested Approach (Tier 1 · Bar chart, grouped by month)**
 
 **Pick data:** Nusights Events Activitytype Default Historical Tbl Flat
 
@@ -1079,38 +1095,30 @@ ORDER BY MONTH
 **Summarize:**
 
 - Metric: Count of rows
-- Group by: `Action Type`
+- Group by: `Timestamp` (Month), `Action Type`
 
-**Visualization:** Bar chart (vertical) with two bars.
+**Visualization:** Bar chart (vertical, grouped) with months on the x-axis and one colored bar per dismissal method per month. Shows both relative preference and temporal trends — the viewer can see which dismissal method is used more and whether that pattern is shifting.
 
 **Grid size:** 12 × 8
 
-**Why these filters:** Multi-value filter captures both dismissal methods.
+**Why these filters:** Multi-value filter captures both dismissal methods. Grouping by `Timestamp` + `Action Type` creates the monthly comparison.
 
 **SQL equivalent (used for API creation):**
 
 ```sql
-WITH labels AS (
-  SELECT 'X (Close)' AS DISMISS_METHOD, 'modal.close' AS ACTION_KEY
-  UNION ALL
-  SELECT 'Cancel Button', 'modal.cancel'
-),
-counts AS (
-  SELECT
-    ACTION_TYPE,
-    COUNT(*) AS TOTAL_DISMISSALS
-  FROM NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT
-  WHERE PAGE_SECTION = 'create_storage_container'
-    AND ACTION_TYPE IN ('modal.close', 'modal.cancel')
-    AND DESTINATION_NAME = 'storage_container/create_form'
-  GROUP BY ACTION_TYPE
-)
 SELECT
-  l.DISMISS_METHOD,
-  COALESCE(c.TOTAL_DISMISSALS, 0) AS TOTAL_DISMISSALS
-FROM labels l
-LEFT JOIN counts c ON l.ACTION_KEY = c.ACTION_TYPE
-ORDER BY TOTAL_DISMISSALS DESC
+  DATE_TRUNC('month', TIMESTAMP) AS MONTH,
+  CASE
+    WHEN ACTION_TYPE = 'modal.close' THEN 'X (Close)'
+    WHEN ACTION_TYPE = 'modal.cancel' THEN 'Cancel Button'
+  END AS DISMISS_METHOD,
+  COUNT(*) AS TOTAL_DISMISSALS
+FROM NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT
+WHERE PAGE_SECTION = 'create_storage_container'
+  AND ACTION_TYPE IN ('modal.close', 'modal.cancel')
+  AND DESTINATION_NAME = 'storage_container/create_form'
+GROUP BY MONTH, DISMISS_METHOD
+ORDER BY MONTH
 ```
 
 ---
@@ -1119,7 +1127,20 @@ ORDER BY TOTAL_DISMISSALS DESC
 
 **Title:** Modal Dismissals Over Time
 
-**Visualization:** Line chart with two series.
+**Pick data:** Nusights Events Activitytype Default Historical Tbl Flat
+
+**Filter:**
+
+- `Page Section` is `create_storage_container`
+- `Action Type` is any of `modal.close`, `modal.cancel`
+- `Destination Name` is `storage_container/create_form`
+
+**Summarize:**
+
+- Metric: Count of rows
+- Group by: `Action Type`, `Timestamp` (Month)
+
+**Visualization:** Line chart with two series. Useful if you prefer trend lines over side-by-side bars.
 
 **Grid size:** 12 × 7
 
@@ -1129,11 +1150,72 @@ ORDER BY TOTAL_DISMISSALS DESC
 
 > "How much time does the user spend creating the storage container, comparing when advanced settings are opened versus when they are not?"
 >
-> Shows average, median, min, and max creation times, segmented by advanced-settings usage.
+> Shows how the average creation time trends over months, revealing whether the experience is getting faster or slower.
 
-**Suggested Approach (Tier 3 · Table)**
+**Suggested Approach (Tier 3 · Line chart, avg duration by month)**
 
-**SQL equivalent (used for API creation):**
+**SQL:**
+
+```sql
+WITH starts AS (
+  SELECT
+    SESSION_ID,
+    TIMESTAMP AS start_ts
+  FROM NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT
+  WHERE PAGE_SECTION = 'storage_container.eb'
+    AND ACTION_TYPE = 'create_storage_container.start'
+    AND DESTINATION_NAME = 'storage_container/list'
+),
+submits AS (
+  SELECT
+    SESSION_ID,
+    TIMESTAMP AS submit_ts
+  FROM NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT
+  WHERE PAGE_SECTION = 'create_storage_container'
+    AND ACTION_TYPE = 'create_storage_container.submit'
+    AND DESTINATION_NAME = 'storage_container/create_form'
+),
+paired AS (
+  SELECT
+    s.SESSION_ID,
+    s.start_ts,
+    sub.submit_ts,
+    TIMESTAMPDIFF('second', s.start_ts, sub.submit_ts) AS duration_seconds
+  FROM starts s
+  INNER JOIN submits sub ON s.SESSION_ID = sub.SESSION_ID
+    AND sub.submit_ts > s.start_ts
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY s.SESSION_ID ORDER BY sub.submit_ts ASC
+  ) = 1
+)
+SELECT
+  DATE_TRUNC('month', start_ts) AS MONTH,
+  ROUND(AVG(duration_seconds), 0) AS AVG_DURATION_SECONDS
+FROM paired
+WHERE duration_seconds > 0
+  AND duration_seconds < 3600
+GROUP BY MONTH
+ORDER BY MONTH
+```
+
+**What this returns:** One row per month showing the average creation duration in seconds, revealing whether the creation experience is getting faster or slower over time.
+
+**Assumptions:**
+
+- `create_storage_container.submit` fires on form submission (may be `.save` or `.complete` — verify).
+- Duration > 3600s excluded as outlier.
+
+**Visualization:** Line chart with months on the x-axis and average duration in seconds on the y-axis. Duration questions are time-series questions — the user wants to see whether the experience is improving or degrading, not a one-shot statistical summary.
+
+**Grid size:** 12 × 7
+
+---
+
+**Alternative Approach (Tier 3 · Bar chart, grouped by month, with/without advanced settings)**
+
+**Title:** Creation Duration by Advanced Settings Usage
+
+**SQL:**
 
 ```sql
 WITH starts AS (
@@ -1179,34 +1261,26 @@ paired AS (
   ) = 1
 )
 SELECT
+  DATE_TRUNC('month', start_ts) AS MONTH,
   SETTINGS_GROUP,
-  COUNT(*) AS TOTAL_SESSIONS,
-  ROUND(AVG(duration_seconds), 0) AS AVG_DURATION_SECONDS,
-  ROUND(MEDIAN(duration_seconds), 0) AS MEDIAN_DURATION_SECONDS,
-  MIN(duration_seconds) AS MIN_DURATION_SECONDS,
-  MAX(duration_seconds) AS MAX_DURATION_SECONDS
+  ROUND(AVG(duration_seconds), 0) AS AVG_DURATION_SECONDS
 FROM paired
 WHERE duration_seconds > 0
   AND duration_seconds < 3600
-GROUP BY SETTINGS_GROUP
-ORDER BY SETTINGS_GROUP
+GROUP BY MONTH, SETTINGS_GROUP
+ORDER BY MONTH
 ```
 
-**What this returns:** Two rows — one for sessions with advanced settings, one without — each showing session count, avg, median, min, and max creation time in seconds.
+**What this returns:** One row per month per settings group, showing the average creation duration — the viewer can compare "with advanced settings" vs "without" side-by-side over time.
 
 **Assumptions:**
 
-- `create_storage_container.submit` fires on form submission (may be `.save` or `.complete` — verify).
 - `input_change.advanced_settings` fires when the user toggles advanced settings (may be `toggle.advanced_settings`).
 - Duration > 3600s excluded as outlier.
 
-**Visualization:** Table. Time-between-events with multiple stats is best presented as a compact table.
+**Visualization:** Bar chart (vertical, grouped) with months on the x-axis and one colored bar per settings group per month. Shows whether advanced settings usage makes creation significantly slower, and how both groups trend over time.
 
-**Grid size:** 18 × 8
-
----
-
-**Alternative Approach:** _No meaningful alternative — the time-between-events pattern requires pairing start and submit events by session, which is SQL-only._
+**Grid size:** 12 × 8
 
 ---
 

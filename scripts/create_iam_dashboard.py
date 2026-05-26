@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Create the shashi-iam-dashboard-automation dashboard with 3 tabs:
+Create the shashi-iam-automated-dashboard with 3 tabs:
   1. Roles (25 widgets)
   2. Policies (17 widgets)
   3. Identities (3 widgets)
 
 Uses the Metabase REST API with credentials from .env.
+All cards and the dashboard are created under the AI Generated Dashboard collection (id=26).
 """
 
 import json
@@ -16,7 +17,7 @@ import ssl
 from pathlib import Path
 
 # Load env
-env_path = Path(__file__).resolve().parent.parent / "metabase-widget" / ".env"
+env_path = Path(__file__).resolve().parent.parent / "metabase-widget-skill" / ".env"
 if env_path.exists():
     for line in env_path.read_text().splitlines():
         line = line.strip()
@@ -28,11 +29,9 @@ BASE_URL = os.environ["METABASE_BASE_URL"].rstrip("/")
 API_KEY = os.environ["METABASE_API_KEY"]
 DB_ID = int(os.environ["METABASE_DATABASE_ID"])
 TABLE = os.environ.get("METABASE_DEFAULT_TABLE_NAME", "NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT")
-COLLECTION_ID = os.environ.get("METABASE_DEFAULT_COLLECTION_ID") or None
-if COLLECTION_ID:
-    COLLECTION_ID = int(COLLECTION_ID)
+COLLECTION_ID = int(os.environ.get("METABASE_DEFAULT_COLLECTION_ID", "26"))
 
-DASHBOARD_ID = 13  # Already created
+DASHBOARD_NAME = "shashi-iam-automated-dashboard"
 
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
@@ -54,12 +53,11 @@ def api(method, path, body=None):
         raise
 
 
-def create_card(name, description, display, sql, viz_settings=None):
-    """Create a native SQL card and return its ID."""
+def create_card(name, description, display, sql, viz_settings=None, dashboard_id=None):
+    """Create a native SQL card scoped to a dashboard and return its ID."""
     payload = {
         "name": name,
         "description": description,
-        "collection_id": COLLECTION_ID,
         "display": display,
         "visualization_settings": viz_settings or {},
         "dataset_query": {
@@ -71,21 +69,26 @@ def create_card(name, description, display, sql, viz_settings=None):
             }
         }
     }
+    if dashboard_id:
+        payload["dashboard_id"] = dashboard_id
+    else:
+        payload["collection_id"] = COLLECTION_ID
     result = api("POST", "/api/card", payload)
     return result["id"]
 
 
-# User-preferred sizes from SKILL.md
+# User-preferred sizes from SKILL.md — 2 charts per row (12+12=24)
 SIZES = {
     "line": (12, 7),
     "bar": (12, 8),
     "row": (12, 7),
     "pie": (12, 8),
-    "scalar": (6, 5),
-    "smartscalar": (6, 5),
-    "table": (18, 8),
+    "scalar": (8, 4),
+    "smartscalar": (8, 4),
+    "table": (24, 8),
     "funnel": (12, 7),
 }
+GRID_COLUMNS = 24
 
 
 def get_size(display):
@@ -182,9 +185,9 @@ GROUP BY 1 ORDER BY ACTION_COUNT DESC""",
         "viz": {"graph.dimensions": ["ACTION_NAME"], "graph.metrics": ["ACTION_COUNT"]}
     },
     {
-        "name": "Role Creation — Average Time Spent",
-        "description": '"How long do people spend on role creation?"\nShows average, median, min, max time between starting and completing role creation.',
-        "display": "table",
+        "name": "Role Creation — Average Time Spent over Time",
+        "description": '"How long do people spend on role creation?"\nShows the trend of average creation duration month by month.',
+        "display": "line",
         "sql": f"""WITH start_events AS (
   SELECT SESSION_ID, TIMESTAMP AS START_TIME
   FROM {TABLE}
@@ -196,34 +199,29 @@ end_events AS (
   WHERE DESTINATION_NAME IN ('Save Role', 'Exit Role Creation') AND PAGE_SECTION = 'form.create_role'
 ),
 paired AS (
-  SELECT s.SESSION_ID, TIMESTAMPDIFF('second', s.START_TIME, e.END_TIME) AS DURATION_SECONDS,
+  SELECT s.SESSION_ID, s.START_TIME, TIMESTAMPDIFF('second', s.START_TIME, e.END_TIME) AS DURATION_SECONDS,
          ROW_NUMBER() OVER (PARTITION BY s.SESSION_ID ORDER BY e.END_TIME ASC) AS RN
   FROM start_events s JOIN end_events e ON s.SESSION_ID = e.SESSION_ID AND e.END_TIME > s.START_TIME
 )
-SELECT ROUND(AVG(DURATION_SECONDS)/60,1) AS AVG_MINUTES, ROUND(MEDIAN(DURATION_SECONDS)/60,1) AS MEDIAN_MINUTES,
-       ROUND(MIN(DURATION_SECONDS)/60,1) AS MIN_MINUTES, ROUND(MAX(DURATION_SECONDS)/60,1) AS MAX_MINUTES, COUNT(*) AS TOTAL_SESSIONS
-FROM paired WHERE RN = 1 AND DURATION_SECONDS > 0 AND DURATION_SECONDS < 3600""",
-        "viz": {}
+SELECT DATE_TRUNC('month', START_TIME) AS MONTH, ROUND(AVG(DURATION_SECONDS)/60,1) AS AVG_MINUTES
+FROM paired WHERE RN = 1 AND DURATION_SECONDS > 0 AND DURATION_SECONDS < 3600
+GROUP BY MONTH ORDER BY MONTH""",
+        "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["AVG_MINUTES"]}
     },
     {
-        "name": "Individual vs Group Operation Adds",
-        "description": '"Do people add individual operations or all operations for entities?"\nShows whether users prefer granular or bulk operation addition.',
+        "name": "Individual vs Group Operation Adds over Time",
+        "description": '"Do people add individual operations or all operations for entities?"\nShows the comparison between individual and group adds month by month.',
         "display": "bar",
-        "sql": f"""WITH labels AS (
-  SELECT 'add_operation' AS RAW_NAME, 'Individual Operations' AS LABEL
-  UNION ALL SELECT 'add_operation_group', 'All Operations (Group)'
-)
-SELECT l.LABEL AS OPERATION_TYPE, COALESCE(c.CNT, 0) AS TOTAL_CLICKS
-FROM labels l
-LEFT JOIN (
-  SELECT DESTINATION_NAME AS RAW_NAME, COUNT(*) AS CNT
-  FROM {TABLE}
-  WHERE DESTINATION_NAME IN ('add_operation', 'add_operation_group')
-    AND PAGE_SECTION = 'form.create_role'
-    AND SUB_PAGE_SECTION = 'select_operations'
-  GROUP BY 1
-) c ON l.RAW_NAME = c.RAW_NAME""",
-        "viz": {"graph.dimensions": ["OPERATION_TYPE"], "graph.metrics": ["TOTAL_CLICKS"]}
+        "sql": f"""SELECT DATE_TRUNC('month', TIMESTAMP) AS MONTH,
+  CASE WHEN DESTINATION_NAME = 'add_operation' THEN 'Individual Operations'
+       ELSE 'All Operations (Group)' END AS OPERATION_TYPE,
+  COUNT(*) AS TOTAL_CLICKS
+FROM {TABLE}
+WHERE DESTINATION_NAME IN ('add_operation', 'add_operation_group')
+  AND PAGE_SECTION = 'form.create_role'
+  AND SUB_PAGE_SECTION = 'select_operations'
+GROUP BY MONTH, OPERATION_TYPE ORDER BY MONTH""",
+        "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["TOTAL_CLICKS"], "series_settings": {}}
     },
     {
         "name": "Role Description Usage over Time",
@@ -279,24 +277,19 @@ GROUP BY 1 ORDER BY REMOVAL_COUNT DESC LIMIT 15""",
         "viz": {"graph.dimensions": ["REMOVED_OPERATION"], "graph.metrics": ["REMOVAL_COUNT"]}
     },
     {
-        "name": "Role Save vs Save & Create Policy",
-        "description": '"How often do users save their roles versus save and go to policy creation?"\nShows whether users typically finish at Save or continue into policy creation.',
+        "name": "Role Save vs Save & Create Policy over Time",
+        "description": '"How often do users save their roles versus save and go to policy creation?"\nShows the comparison between the two completion paths month by month.',
         "display": "bar",
-        "sql": f"""WITH labels AS (
-  SELECT 'save_role' AS RAW_NAME, 'Save Role' AS LABEL
-  UNION ALL SELECT 'save_role_create_policy', 'Save & Create Policy'
-)
-SELECT l.LABEL AS ACTION_LABEL, COALESCE(c.CNT, 0) AS TOTAL_CLICKS
-FROM labels l
-LEFT JOIN (
-  SELECT DESTINATION_NAME AS RAW_NAME, COUNT(*) AS CNT
-  FROM {TABLE}
-  WHERE DESTINATION_NAME IN ('save_role', 'save_role_create_policy')
-    AND PAGE_SECTION = 'form.create_role'
-    AND SUB_PAGE_SECTION = 'footer'
-  GROUP BY 1
-) c ON l.RAW_NAME = c.RAW_NAME""",
-        "viz": {"graph.dimensions": ["ACTION_LABEL"], "graph.metrics": ["TOTAL_CLICKS"]}
+        "sql": f"""SELECT DATE_TRUNC('month', TIMESTAMP) AS MONTH,
+  CASE WHEN DESTINATION_NAME = 'save_role' THEN 'Save Role'
+       ELSE 'Save & Create Policy' END AS ACTION_LABEL,
+  COUNT(*) AS TOTAL_CLICKS
+FROM {TABLE}
+WHERE DESTINATION_NAME IN ('save_role', 'save_role_create_policy')
+  AND PAGE_SECTION = 'form.create_role'
+  AND SUB_PAGE_SECTION = 'footer'
+GROUP BY MONTH, ACTION_LABEL ORDER BY MONTH""",
+        "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["TOTAL_CLICKS"], "series_settings": {}}
     },
     {
         "name": "Related Operations Icon Clicks over Time",
@@ -381,16 +374,16 @@ GROUP BY 1 ORDER BY 1""",
         "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["TOGGLES"]}
     },
     {
-        "name": "Role Update Entry Points",
-        "description": '"From where do users enter the role update workflow?"\nShows whether users start updates from the details page or the list dropdown.',
+        "name": "Role Update Entry Points over Time",
+        "description": '"From where do users enter the role update workflow?"\nShows whether users start updates from the details page or list dropdown, month by month.',
         "display": "bar",
-        "sql": f"""SELECT PAGE_SECTION AS ENTRY_POINT, COUNT(*) AS TOTAL_CLICKS
+        "sql": f"""SELECT DATE_TRUNC('month', TIMESTAMP) AS MONTH, PAGE_SECTION AS ENTRY_POINT, COUNT(*) AS TOTAL_CLICKS
 FROM {TABLE}
 WHERE DESTINATION_NAME IN ('update', 'update_role')
   AND FEATNAME = 'Role'
   AND ACTION_TYPE = 'click'
-GROUP BY 1 ORDER BY TOTAL_CLICKS DESC""",
-        "viz": {"graph.dimensions": ["ENTRY_POINT"], "graph.metrics": ["TOTAL_CLICKS"]}
+GROUP BY MONTH, ENTRY_POINT ORDER BY MONTH""",
+        "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["TOTAL_CLICKS"], "series_settings": {}}
     },
     {
         "name": "Role Deletions over Time",
@@ -405,16 +398,16 @@ GROUP BY 1 ORDER BY 1""",
         "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["DELETIONS"]}
     },
     {
-        "name": "Role Delete Entry Points",
-        "description": '"From where do users enter the role delete workflow?"\nShows whether users delete from the list actions dropdown or the details page.',
+        "name": "Role Delete Entry Points over Time",
+        "description": '"From where do users enter the role delete workflow?"\nShows whether users delete from the list or details page, month by month.',
         "display": "bar",
-        "sql": f"""SELECT PAGE_SECTION AS ENTRY_POINT, COUNT(*) AS TOTAL_CLICKS
+        "sql": f"""SELECT DATE_TRUNC('month', TIMESTAMP) AS MONTH, PAGE_SECTION AS ENTRY_POINT, COUNT(*) AS TOTAL_CLICKS
 FROM {TABLE}
 WHERE DESTINATION_NAME IN ('delete_role', 'delete')
   AND FEATNAME = 'Role'
   AND ACTION_TYPE = 'click'
-GROUP BY 1 ORDER BY TOTAL_CLICKS DESC""",
-        "viz": {"graph.dimensions": ["ENTRY_POINT"], "graph.metrics": ["TOTAL_CLICKS"]}
+GROUP BY MONTH, ENTRY_POINT ORDER BY MONTH""",
+        "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["TOTAL_CLICKS"], "series_settings": {}}
     },
     {
         "name": "Most Common Role Details Actions",
@@ -449,35 +442,30 @@ GROUP BY 1 ORDER BY 1""",
         "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["DELETIONS"]}
     },
     {
-        "name": "Policy Delete Entry Points",
-        "description": '"From where do users enter the policy delete workflow?"\nShows whether users delete from the list dropdown or the details page.',
+        "name": "Policy Delete Entry Points over Time",
+        "description": '"From where do users enter the policy delete workflow?"\nShows whether users delete from the list or details page, month by month.',
         "display": "bar",
-        "sql": f"""SELECT PAGE_SECTION AS ENTRY_POINT, COUNT(*) AS TOTAL_CLICKS
+        "sql": f"""SELECT DATE_TRUNC('month', TIMESTAMP) AS MONTH, PAGE_SECTION AS ENTRY_POINT, COUNT(*) AS TOTAL_CLICKS
 FROM {TABLE}
 WHERE (DESTINATION_NAME LIKE 'delete:%' OR DESTINATION_NAME = 'delete')
   AND FEATNAME = 'Authorization Policy'
   AND ACTION_TYPE = 'click'
-GROUP BY 1 ORDER BY TOTAL_CLICKS DESC""",
-        "viz": {"graph.dimensions": ["ENTRY_POINT"], "graph.metrics": ["TOTAL_CLICKS"]}
+GROUP BY MONTH, ENTRY_POINT ORDER BY MONTH""",
+        "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["TOTAL_CLICKS"], "series_settings": {}}
     },
     {
-        "name": "Policy Creation Entry Points",
-        "description": '"From where do users enter the policy creation workflow?"\nShows whether users create policies from the list or from the role creation flow.',
+        "name": "Policy Creation Entry Points over Time",
+        "description": '"From where do users enter the policy creation workflow?"\nShows whether users create policies from the list or role flow, month by month.',
         "display": "bar",
-        "sql": f"""WITH labels AS (
-  SELECT 'Create Authorization Policy' AS RAW_NAME, 'Policy List' AS LABEL
-  UNION ALL SELECT 'save_role_create_policy', 'Role Creation Flow'
-)
-SELECT l.LABEL AS ENTRY_POINT, COALESCE(c.CNT, 0) AS TOTAL_CLICKS
-FROM labels l
-LEFT JOIN (
-  SELECT DESTINATION_NAME AS RAW_NAME, COUNT(*) AS CNT
-  FROM {TABLE}
-  WHERE DESTINATION_NAME IN ('Create Authorization Policy', 'save_role_create_policy')
-    AND ACTION_TYPE = 'click'
-  GROUP BY 1
-) c ON l.RAW_NAME = c.RAW_NAME""",
-        "viz": {"graph.dimensions": ["ENTRY_POINT"], "graph.metrics": ["TOTAL_CLICKS"]}
+        "sql": f"""SELECT DATE_TRUNC('month', TIMESTAMP) AS MONTH,
+  CASE WHEN DESTINATION_NAME = 'Create Authorization Policy' THEN 'Policy List'
+       ELSE 'Role Creation Flow' END AS ENTRY_POINT,
+  COUNT(*) AS TOTAL_CLICKS
+FROM {TABLE}
+WHERE DESTINATION_NAME IN ('Create Authorization Policy', 'save_role_create_policy')
+  AND ACTION_TYPE = 'click'
+GROUP BY MONTH, ENTRY_POINT ORDER BY MONTH""",
+        "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["TOTAL_CLICKS"], "series_settings": {}}
     },
     {
         "name": "Policy Creation over Time",
@@ -504,29 +492,24 @@ GROUP BY 1 ORDER BY USAGE_COUNT DESC LIMIT 15""",
         "viz": {"graph.dimensions": ["ROLE_NAME"], "graph.metrics": ["USAGE_COUNT"]}
     },
     {
-        "name": "Full Access vs Configured Access",
-        "description": '"Do users typically create configured access or full access policies?"\nShows the split between the two access policy types.',
+        "name": "Full Access vs Configured Access over Time",
+        "description": '"Do users typically create configured access or full access policies?"\nShows the comparison between the two access modes month by month.',
         "display": "bar",
-        "sql": f"""WITH labels AS (
-  SELECT 'select_entity_type:fullAccess' AS RAW_NAME, 'Full Access' AS LABEL
-  UNION ALL SELECT 'select_entity_type:configureAccess', 'Configured Access'
-)
-SELECT l.LABEL AS ACCESS_TYPE, COALESCE(c.CNT, 0) AS TOTAL_CLICKS
-FROM labels l
-LEFT JOIN (
-  SELECT DESTINATION_NAME AS RAW_NAME, COUNT(*) AS CNT
-  FROM {TABLE}
-  WHERE DESTINATION_NAME IN ('select_entity_type:fullAccess', 'select_entity_type:configureAccess')
-    AND FEATNAME = 'Authorization Policy'
-    AND PAGE_SECTION = 'form.edit_authorization_policy'
-  GROUP BY 1
-) c ON l.RAW_NAME = c.RAW_NAME""",
-        "viz": {"graph.dimensions": ["ACCESS_TYPE"], "graph.metrics": ["TOTAL_CLICKS"]}
+        "sql": f"""SELECT DATE_TRUNC('month', TIMESTAMP) AS MONTH,
+  CASE WHEN DESTINATION_NAME = 'select_entity_type:fullAccess' THEN 'Full Access'
+       ELSE 'Configured Access' END AS ACCESS_TYPE,
+  COUNT(*) AS TOTAL_CLICKS
+FROM {TABLE}
+WHERE DESTINATION_NAME IN ('select_entity_type:fullAccess', 'select_entity_type:configureAccess')
+  AND FEATNAME = 'Authorization Policy'
+  AND PAGE_SECTION = 'form.edit_authorization_policy'
+GROUP BY MONTH, ACCESS_TYPE ORDER BY MONTH""",
+        "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["TOTAL_CLICKS"], "series_settings": {}}
     },
     {
-        "name": "Policy Creation — Average Time Spent",
-        "description": '"How long does it take users to create policies?"\nShows average, median, min, max time between opening the policy form and saving.',
-        "display": "table",
+        "name": "Policy Creation — Average Time Spent over Time",
+        "description": '"How long does it take users to create policies?"\nShows the trend of average creation duration month by month.',
+        "display": "line",
         "sql": f"""WITH form_open AS (
   SELECT SESSION_ID, TIMESTAMP AS OPEN_TIME
   FROM {TABLE}
@@ -540,14 +523,14 @@ form_save AS (
     AND PAGE_SECTION = 'form.edit_authorization_policy'
 ),
 paired AS (
-  SELECT o.SESSION_ID, TIMESTAMPDIFF('second', o.OPEN_TIME, s.SAVE_TIME) AS DURATION_SECONDS,
+  SELECT o.SESSION_ID, o.OPEN_TIME, TIMESTAMPDIFF('second', o.OPEN_TIME, s.SAVE_TIME) AS DURATION_SECONDS,
          ROW_NUMBER() OVER (PARTITION BY o.SESSION_ID ORDER BY s.SAVE_TIME ASC) AS RN
   FROM form_open o JOIN form_save s ON o.SESSION_ID = s.SESSION_ID AND s.SAVE_TIME > o.OPEN_TIME
 )
-SELECT ROUND(AVG(DURATION_SECONDS)/60,1) AS AVG_MINUTES, ROUND(MEDIAN(DURATION_SECONDS)/60,1) AS MEDIAN_MINUTES,
-       ROUND(MIN(DURATION_SECONDS)/60,1) AS MIN_MINUTES, ROUND(MAX(DURATION_SECONDS)/60,1) AS MAX_MINUTES, COUNT(*) AS TOTAL_SESSIONS
-FROM paired WHERE RN = 1 AND DURATION_SECONDS > 0 AND DURATION_SECONDS < 3600""",
-        "viz": {}
+SELECT DATE_TRUNC('month', OPEN_TIME) AS MONTH, ROUND(AVG(DURATION_SECONDS)/60,1) AS AVG_MINUTES
+FROM paired WHERE RN = 1 AND DURATION_SECONDS > 0 AND DURATION_SECONDS < 3600
+GROUP BY MONTH ORDER BY MONTH""",
+        "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["AVG_MINUTES"]}
     },
     {
         "name": "Future Access Checkbox Usage over Time",
@@ -617,9 +600,9 @@ FROM condition_counts GROUP BY NUM_CONDITIONS ORDER BY NUM_CONDITIONS""",
         "viz": {"graph.dimensions": ["CONDITIONS_ADDED"], "graph.metrics": ["SESSIONS"]}
     },
     {
-        "name": "Policy Creation — Time per Step",
-        "description": '"How much time do users spend on each step of the policy creation workflow?"\nShows average time spent on each wizard step.',
-        "display": "table",
+        "name": "Policy Creation — Time per Step over Time",
+        "description": '"How much time do users spend on each step of the policy creation workflow?"\nShows the average time per step month by month.',
+        "display": "bar",
         "sql": f"""WITH step_events AS (
   SELECT SESSION_ID, SUB_PAGE_SECTION AS STEP_NAME, TIMESTAMP AS STEP_TIME,
          LEAD(TIMESTAMP) OVER (PARTITION BY SESSION_ID ORDER BY TIMESTAMP) AS NEXT_STEP_TIME
@@ -630,14 +613,15 @@ FROM condition_counts GROUP BY NUM_CONDITIONS ORDER BY NUM_CONDITIONS""",
     AND SUB_PAGE_SECTION LIKE 'step_%'
 ),
 step_durations AS (
-  SELECT SESSION_ID, STEP_NAME, TIMESTAMPDIFF('second', STEP_TIME, NEXT_STEP_TIME) AS DURATION_SECONDS
+  SELECT SESSION_ID, STEP_NAME, STEP_TIME, TIMESTAMPDIFF('second', STEP_TIME, NEXT_STEP_TIME) AS DURATION_SECONDS
   FROM step_events
   WHERE NEXT_STEP_TIME IS NOT NULL AND TIMESTAMPDIFF('second', STEP_TIME, NEXT_STEP_TIME) BETWEEN 1 AND 1800
 )
-SELECT INITCAP(REPLACE(STEP_NAME, '_', ' ')) AS STEP_LABEL,
-       ROUND(AVG(DURATION_SECONDS)/60,1) AS AVG_MINUTES, ROUND(MEDIAN(DURATION_SECONDS)/60,1) AS MEDIAN_MINUTES, COUNT(*) AS SESSIONS
-FROM step_durations GROUP BY STEP_NAME ORDER BY STEP_NAME""",
-        "viz": {}
+SELECT DATE_TRUNC('month', STEP_TIME) AS MONTH,
+       INITCAP(REPLACE(STEP_NAME, '_', ' ')) AS STEP_LABEL,
+       ROUND(AVG(DURATION_SECONDS)/60,1) AS AVG_MINUTES
+FROM step_durations GROUP BY MONTH, STEP_NAME ORDER BY MONTH, STEP_NAME""",
+        "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["AVG_MINUTES"], "series_settings": {}}
     },
     {
         "name": "View Entity Types Clicks over Time",
@@ -652,9 +636,9 @@ GROUP BY 1 ORDER BY 1""",
         "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["CLICKS"]}
     },
     {
-        "name": "Policy Details Page — Time Spent",
-        "description": '"How much time do users spend on the policy details page?"\nShows average time between opening and closing the policy details view.',
-        "display": "table",
+        "name": "Policy Details Page — Average Time Spent over Time",
+        "description": '"How much time do users spend on the policy details page?"\nShows the trend of average time on the details page month by month.',
+        "display": "line",
         "sql": f"""WITH open_events AS (
   SELECT SESSION_ID, TIMESTAMP AS OPEN_TIME
   FROM {TABLE}
@@ -666,14 +650,14 @@ close_events AS (
   WHERE DESTINATION_NAME = 'close_policy' AND FEATNAME = 'Authorization Policy'
 ),
 paired AS (
-  SELECT o.SESSION_ID, TIMESTAMPDIFF('second', o.OPEN_TIME, c.CLOSE_TIME) AS DURATION_SECONDS,
+  SELECT o.SESSION_ID, o.OPEN_TIME, TIMESTAMPDIFF('second', o.OPEN_TIME, c.CLOSE_TIME) AS DURATION_SECONDS,
          ROW_NUMBER() OVER (PARTITION BY o.SESSION_ID, o.OPEN_TIME ORDER BY c.CLOSE_TIME ASC) AS RN
   FROM open_events o JOIN close_events c ON o.SESSION_ID = c.SESSION_ID AND c.CLOSE_TIME > o.OPEN_TIME
 )
-SELECT ROUND(AVG(DURATION_SECONDS)/60,1) AS AVG_MINUTES, ROUND(MEDIAN(DURATION_SECONDS)/60,1) AS MEDIAN_MINUTES,
-       ROUND(MIN(DURATION_SECONDS)/60,1) AS MIN_MINUTES, ROUND(MAX(DURATION_SECONDS)/60,1) AS MAX_MINUTES, COUNT(*) AS TOTAL_VIEWS
-FROM paired WHERE RN = 1 AND DURATION_SECONDS > 0 AND DURATION_SECONDS < 1800""",
-        "viz": {}
+SELECT DATE_TRUNC('month', OPEN_TIME) AS MONTH, ROUND(AVG(DURATION_SECONDS)/60,1) AS AVG_MINUTES
+FROM paired WHERE RN = 1 AND DURATION_SECONDS > 0 AND DURATION_SECONDS < 1800
+GROUP BY MONTH ORDER BY MONTH""",
+        "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["AVG_MINUTES"]}
     },
     {
         "name": "Most Common Policy Details Actions",
@@ -721,8 +705,8 @@ GROUP BY 1 ORDER BY 1""",
         "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["LOCAL_USERS_ADDED"]}
     },
     {
-        "name": "Identities Page — Time per Tab",
-        "description": '"How much time do users spend in each of the tabs in the Identities page?"\nShows average time spent on each Identities tab.',
+        "name": "Identities Page — Time per Tab over Time",
+        "description": '"How much time do users spend in each of the tabs in the Identities page?"\nShows the average time per tab month by month.',
         "display": "bar",
         "sql": f"""WITH tab_events AS (
   SELECT SESSION_ID, DESTINATION_NAME AS TAB_NAME, TIMESTAMP AS TAB_TIME,
@@ -734,7 +718,7 @@ GROUP BY 1 ORDER BY 1""",
   )
 ),
 tab_durations AS (
-  SELECT SESSION_ID,
+  SELECT SESSION_ID, TAB_TIME,
     CASE WHEN TAB_NAME = 'nav_item.roles' THEN 'Roles Tab'
          ELSE INITCAP(REPLACE(SPLIT_PART(TAB_NAME, ':', 2), '_', ' '))
     END AS TAB_LABEL,
@@ -742,9 +726,9 @@ tab_durations AS (
   FROM tab_events
   WHERE NEXT_EVENT_TIME IS NOT NULL AND TIMESTAMPDIFF('second', TAB_TIME, NEXT_EVENT_TIME) BETWEEN 1 AND 1800
 )
-SELECT TAB_LABEL, ROUND(AVG(DURATION_SECONDS)/60,1) AS AVG_MINUTES, ROUND(MEDIAN(DURATION_SECONDS)/60,1) AS MEDIAN_MINUTES, COUNT(*) AS SESSIONS
-FROM tab_durations GROUP BY TAB_LABEL ORDER BY AVG_MINUTES DESC""",
-        "viz": {"graph.dimensions": ["TAB_LABEL"], "graph.metrics": ["AVG_MINUTES"]}
+SELECT DATE_TRUNC('month', TAB_TIME) AS MONTH, TAB_LABEL, ROUND(AVG(DURATION_SECONDS)/60,1) AS AVG_MINUTES
+FROM tab_durations GROUP BY MONTH, TAB_LABEL ORDER BY MONTH, TAB_LABEL""",
+        "viz": {"graph.dimensions": ["MONTH"], "graph.metrics": ["AVG_MINUTES"], "series_settings": {}}
     },
     {
         "name": "Guided Experience Enablement over Time",
@@ -762,11 +746,21 @@ GROUP BY 1 ORDER BY 1""",
 
 
 def main():
-    print(f"Dashboard ID: {DASHBOARD_ID}")
-    print(f"URL: {BASE_URL}/dashboard/{DASHBOARD_ID}")
+    # Step 0: Create a new dashboard
+    print(f"=== Creating dashboard: {DASHBOARD_NAME} ===")
+    dash_payload = {
+        "name": DASHBOARD_NAME,
+        "description": "IAM Telemetry Dashboard with tabs for Roles, Policies, and Identities.",
+        "collection_id": COLLECTION_ID,
+        "parameters": []
+    }
+    dash_result = api("POST", "/api/dashboard", dash_payload)
+    dashboard_id = dash_result["id"]
+    print(f"  Dashboard created: ID={dashboard_id}")
+    print(f"  URL: {BASE_URL}/dashboard/{dashboard_id}")
     print()
 
-    # Step 1: Create tabs first (without cards)
+    # Step 1: Create tabs (without cards)
     print("=== Creating tabs ===")
     tab_payload = {
         "tabs": [
@@ -776,7 +770,7 @@ def main():
         ],
         "dashcards": []
     }
-    result = api("PUT", f"/api/dashboard/{DASHBOARD_ID}", tab_payload)
+    result = api("PUT", f"/api/dashboard/{dashboard_id}", tab_payload)
     tabs = result.get("tabs", [])
     print(f"  Tabs created: {json.dumps(tabs, indent=2)}")
 
@@ -798,7 +792,7 @@ def main():
     for i, w in enumerate(roles_widgets, 1):
         print(f"  [{i:02d}/25] {w['name']}...", end=" ", flush=True)
         try:
-            card_id = create_card(w["name"], w["description"], w["display"], w["sql"], w.get("viz"))
+            card_id = create_card(w["name"], w["description"], w["display"], w["sql"], w.get("viz"), dashboard_id=dashboard_id)
             all_cards.append((card_id, "Roles", w["display"]))
             print(f"OK (card #{card_id})")
         except Exception as e:
@@ -810,7 +804,7 @@ def main():
     for i, w in enumerate(policies_widgets, 1):
         print(f"  [{i:02d}/17] {w['name']}...", end=" ", flush=True)
         try:
-            card_id = create_card(w["name"], w["description"], w["display"], w["sql"], w.get("viz"))
+            card_id = create_card(w["name"], w["description"], w["display"], w["sql"], w.get("viz"), dashboard_id=dashboard_id)
             all_cards.append((card_id, "Policies", w["display"]))
             print(f"OK (card #{card_id})")
         except Exception as e:
@@ -822,7 +816,7 @@ def main():
     for i, w in enumerate(identities_widgets, 1):
         print(f"  [{i:02d}/03] {w['name']}...", end=" ", flush=True)
         try:
-            card_id = create_card(w["name"], w["description"], w["display"], w["sql"], w.get("viz"))
+            card_id = create_card(w["name"], w["description"], w["display"], w["sql"], w.get("viz"), dashboard_id=dashboard_id)
             all_cards.append((card_id, "Identities", w["display"]))
             print(f"OK (card #{card_id})")
         except Exception as e:
@@ -845,7 +839,7 @@ def main():
 
         for card_id, display in tab_cards:
             sx, sy = get_size(display)
-            if col_cursor + sx > 18:
+            if col_cursor + sx > GRID_COLUMNS:
                 row_cursor += current_row_height
                 col_cursor = 0
                 current_row_height = 0
@@ -873,14 +867,14 @@ def main():
         "dashcards": dashcards,
         "tabs": [{"id": tab_map[n], "name": n} for n in ["Roles", "Policies", "Identities"]]
     }
-    result = api("PUT", f"/api/dashboard/{DASHBOARD_ID}", update_payload)
+    result = api("PUT", f"/api/dashboard/{dashboard_id}", update_payload)
     final_tabs = result.get("tabs", [])
     final_cards = result.get("dashcards", [])
     print(f"  Dashboard updated! Tabs: {len(final_tabs)}, Cards: {len(final_cards)}")
 
     # Summary
     print("\n" + "=" * 60)
-    print(f"DONE! Dashboard: {BASE_URL}/dashboard/{DASHBOARD_ID}")
+    print(f"DONE! Dashboard: {BASE_URL}/dashboard/{dashboard_id}")
     print(f"  Tab 1 - Roles: {sum(1 for c,t,d in all_cards if t=='Roles' and c)} cards")
     print(f"  Tab 2 - Policies: {sum(1 for c,t,d in all_cards if t=='Policies' and c)} cards")
     print(f"  Tab 3 - Identities: {sum(1 for c,t,d in all_cards if t=='Identities' and c)} cards")

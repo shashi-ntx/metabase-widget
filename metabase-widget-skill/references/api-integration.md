@@ -80,7 +80,9 @@ The skill only uses a small subset of the Metabase API. Other endpoints exist; d
 
 ## Payloads
 
-### Create a native SQL card
+### Create a native SQL card (dashboard-scoped)
+
+Cards are saved **inside the dashboard** using the `dashboard_id` parameter (Metabase v0.51+). This prevents cards from appearing as standalone items in the collection, keeping the landing page clean.
 
 `POST /api/card` body:
 
@@ -88,7 +90,7 @@ The skill only uses a small subset of the Metabase API. Other endpoints exist; d
 {
   "name": "Save vs Save & Create",
   "description": "\"How often do users save their roles versus save and go to policy creation?\"\nShows whether users typically finish at Save or continue into policy creation.",
-  "collection_id": 63,
+  "dashboard_id": 14,
   "display": "bar",
   "visualization_settings": {
     "graph.dimensions": ["ACTION_LABEL"],
@@ -105,13 +107,17 @@ The skill only uses a small subset of the Metabase API. Other endpoints exist; d
 }
 ```
 
+**Key point:** Pass `"dashboard_id"` (not `"collection_id"`) when creating cards. The dashboard itself is created with `collection_id`; cards inherit their scope from the dashboard. Cards with `dashboard_id` set are invisible in collection listings and only appear when viewing the dashboard.
+
+**Fallback (pre-v0.51):** If the Metabase instance does not support `dashboard_id`, fall back to `"collection_id"` on the card. Cards will then appear as standalone items in the collection alongside the dashboard.
+
 Response (truncated):
 
 ```json
 {
   "id": 123,
   "name": "Save vs Save & Create",
-  "collection_id": 63,
+  "dashboard_id": 14,
   ...
 }
 ```
@@ -180,7 +186,7 @@ Rules:
 
 - `id` must be a **negative integer** for new dashcards (Metabase assigns a real positive ID on save). Use `-1`, `-2`, … in array order.
 - When **adding to an existing dashboard**, first `GET /api/dashboard/{id}` to read its current `dashcards` array, then PUT back the union: existing dashcards (with their real positive `id`s) plus the new ones (with negative `id`s).
-- `col` ranges 0–17 (the grid is 18 columns wide). `row` is unbounded.
+- `col` ranges 0–23 (the grid is 24 columns wide). `row` is unbounded.
 - See `dashboard-layout.md` for sizing heuristics and the auto-layout algorithm.
 
 ## Visualization settings cheat sheet
