@@ -1,6 +1,6 @@
 ---
 name: metabase-widget
-description: Build Metabase widgets from telemetry questions and event payloads — one at a time or in batch from a spreadsheet. Operates in two stages: (1) prepares a reviewable `widget-review.md` with step-by-step Query Builder instructions or SQL plus suggested chart, title, and description; (2) on explicit user confirmation, creates the questions and dashboards directly in Metabase via the REST API and returns live URLs. Use when the user wants to create a Metabase question, widget, card, chart, or dashboard tile from telemetry data — even if they just paste an event payload and ask "how do I visualize this", hand over a CSV/Excel/Google Sheet of telemetry requirements, or ask to push widgets into an existing dashboard.
+description: Build Metabase widgets from telemetry questions and event payloads — one at a time or in batch from a spreadsheet — or rebuild an existing dashboard (e.g. a Snowflake dashboard JSON export) in Metabase. Operates in two stages. (1) Prepares a reviewable `widget-review.md` with step-by-step Query Builder instructions or SQL, plus a suggested chart, title, and description. (2) On explicit user confirmation, creates the questions and dashboards directly in Metabase via the REST API and returns live URLs. Simple widgets are created as Query Builder questions, verified against SQL, so designers can edit them. Use when the user wants to create a Metabase question, widget, card, chart, or dashboard tile from telemetry data — even if they just paste an event payload and ask "how do I visualize this", hand over a CSV/Excel/Google Sheet of telemetry requirements, ask to push widgets into an existing dashboard, or ask to migrate a dashboard from Snowflake or another tool into Metabase.
 ---
 
 # Metabase Widget Builder
@@ -146,7 +146,9 @@ Write Snowflake-compatible SQL for use as a native Metabase question.
 - Title-casing, `REPLACE`, `INITCAP` — string operations the expression editor lacks
 - Guaranteed-zero rows for missing categories (`labels` CTE + `LEFT JOIN`)
 
-> **Pragmatic note for API execution (Stage 2):** even when a widget is authored as Tier 1 or Tier 2 in the Query Builder, the skill creates the corresponding card as a **native SQL question** by default — this avoids fragile MBQL field-ID translation. The Query Builder instructions remain in `widget-review.md` so the user can rebuild the question visually if they prefer. See `references/api-integration.md` § "Tier 1/2 → SQL fallback".
+> **What gets created in Stage 2:** Tier 1 and simple Tier 2 widgets are created as **query-builder (MBQL) questions**, so designers can tweak them in the notebook editor without touching SQL. Before saving, each one is checked against its SQL equivalent with `metabase_api.py compare`. If the MBQL can't be built or doesn't match, that widget falls back to its SQL equivalent, and the fallback is recorded. Tier 3 widgets are always SQL. See `references/api-integration.md` § "Tier 1 / simple Tier 2 → query-builder (MBQL) cards".
+>
+> **"Simple Tier 2"** means one summarize stage, optionally with custom columns or custom filters. Widgets that need summarize → bucket → summarize again can technically be built in the builder, but they are hard to edit. Build them in the builder only if each stage is simple; otherwise treat them as Tier 3.
 
 ## Stage 1 — Preparation: produce `widget-review.md`
 
@@ -216,13 +218,16 @@ Only enter Stage 2 when the user explicitly confirms. Triggers include:
 
 When the user confirms:
 
-1. **Verify configuration.** Read environment variables / `.env` (see `references/api-integration.md` § "Configuration"). Run a connectivity check: `GET /api/user/current`. If anything is missing or fails, stop and tell the user exactly what to fix.
+1. **Verify configuration.** Read environment variables / `.env` (see `references/api-integration.md` § "Configuration"). Run `scripts/metabase_api.py check`, which verifies auth, the database, and the collection, and reports the Metabase version. If anything is missing or fails, stop and tell the user exactly what to fix.
 2. **Re-read `widget-review.md`.** The user may have edited it. Respect every edit: dropped rows are skipped; swapped approaches use the alternative; edited titles/descriptions/queries are used as-is. Use `scripts/widget_review.py parse` to extract the structured widget list — never re-derive the widget list from the original requirement input.
 3. **Ask which execution flow** the user wants (unless they already said in the confirmation message). See `references/execution-flows.md` for the four supported flows and their decision logic.
-4. **Create the cards** via `POST /api/card`. Use the helper script `scripts/metabase_api.py create-card`. Default to native SQL payloads for all tiers (see Tier 1/2 fallback note above).
-5. **Create / update the dashboard** depending on the chosen flow (`POST /api/dashboard`, then `PUT /api/dashboard/{id}` with the dashcards array). Use the layout heuristic in `references/dashboard-layout.md`.
-6. **Write results back into `widget-review.md`** — add or update a `Result` column in the summary table with the live Metabase URL (or the error message) for each row, and append a `## Results` section at the bottom with the dashboard URL, totals, and any failures.
-7. **Report in chat**: total created, total failed (with reasons), dashboard URL, and the path to the updated review file.
+4. **Dry-run every query** with `scripts/metabase_api.py run-query` (`POST /api/dataset`, nothing saved), so a broken query is caught before anything is created.
+5. **Create the cards** with `scripts/metabase_api.py create-card`:
+   - **Tier 1 / simple Tier 2 → MBQL.** Resolve IDs with `find-table` and `list-fields`, and translate the Query Builder steps into an MBQL file. Run `compare --sql-file … --mbql-file …`, then create the card with `--mbql-file`. On a mismatch or error, use the SQL equivalent and mark the result `SQL fallback: <reason>`.
+   - **Tier 3 → SQL** with `--sql-file`.
+6. **Create / update the dashboard** depending on the chosen flow (`POST /api/dashboard`, then `PUT /api/dashboard/{id}` with the dashcards array). Use the layout heuristic in `references/dashboard-layout.md`.
+7. **Write results back into `widget-review.md`**. Add or update the `Result` column in the summary table with the live Metabase URL (or the error message) for each row. Note whether each card is query-builder or SQL. Then append a `## Results` section at the bottom with the dashboard URL, totals, and any failures.
+8. **Report in chat**: total created, how many are query-builder vs SQL (with the reason for any fallback), total failed (with reasons), the dashboard URL, and the path to the updated review file.
 
 If any individual card fails to create, **continue with the rest** — record the failure in the review file, still build the dashboard with the cards that succeeded.
 
@@ -265,10 +270,11 @@ If any individual card fails to create, **continue with the rest** — record th
 
 **Why these filters:** one-sentence explanation of what each filter isolates and why it was chosen.
 
-**SQL equivalent (used for Stage 2 API creation):**
+**SQL equivalent (verification + fallback):**
 ```sql
 -- Snowflake-compatible SQL that produces the same result as the Query Builder steps above.
--- This is what the skill will POST to /api/card if the user confirms execution.
+-- Stage 2 builds the card in the Query Builder (MBQL), checks it against this SQL,
+-- and only saves this SQL instead if the MBQL version can't be built or doesn't match.
 SELECT …
 ````
 
@@ -329,6 +335,10 @@ Read `references/data-model.md` for the table/column mapping, field aliases, and
 
 - **Don't filter on Action Type when it's `click`.** Almost all telemetry events are `click` events — adding `Action Type is click` to every widget is noise. Only include an Action Type filter when the event uses a different type (`change`, `submit`, `view`, etc.). Same applies in SQL: skip `AND ACTION_TYPE = 'click'` unless the event is non-click.
 
+- **Query Builder text filters are case-insensitive by default; SQL `LIKE` is case-sensitive.** When a widget has both a Query Builder version and a SQL equivalent, make them agree. Either tick "Case sensitive" in the filter (MBQL `{"case-sensitive": true}`), or use `ILIKE` in the SQL.
+
+- **`COUNT(column)` is not "Count of rows".** If the SQL counts a column that can be NULL, the Query Builder version needs an extra "is not empty" filter on that column to match.
+
 - **Use `starts with` (Query Builder) or `startsWith` (Custom Expressions) for prefix matching, NOT `contains`.** If you want to match events starting with a specific term (e.g. `delete` or `delete_confirm`), suggest `starts with "delete"`. Do NOT use `contains "delete"`, as that will incorrectly match values like `abc_delete` or `system_delete`. Only use `contains` (Query Builder) or `contains` (Custom Expressions) if the term can legitimately appear anywhere in the string. In SQL, use `LIKE 'delete%'` or `ILIKE 'delete%'`.
 
 ## References
@@ -340,7 +350,8 @@ Read `references/data-model.md` for the table/column mapping, field aliases, and
 - `references/review-file-format.md` — read whenever generating or re-reading `widget-review.md` (Stage 1 output and Stage 2 input)
 - `references/api-integration.md` — read at the start of Stage 2 for configuration, authentication, endpoint payloads, and error handling
 - `references/execution-flows.md` — read at the start of Stage 2 to pick the right flow (new dashboard / existing dashboard / questions only / markdown only)
-- `references/dashboard-layout.md` — read when placing cards on a dashboard (18-column grid, sizing heuristic, auto-layout rules)
+- `references/dashboard-layout.md` — read when placing cards on a dashboard (24-column grid, sizing heuristic, auto-layout rules)
+- `references/dashboard-migration.md` — read when the user wants to rebuild an existing dashboard (e.g. a Snowflake dashboard JSON export) in Metabase
 
 ## Utility scripts
 
@@ -352,18 +363,27 @@ The skill ships with two helper scripts under `scripts/`. Prefer running these o
 # Verify connectivity and config
 python scripts/metabase_api.py check
 
-# Discover databases / collections / tables
+# Discover databases / collections / tables / field IDs
 python scripts/metabase_api.py list-databases
 python scripts/metabase_api.py list-collections
 python scripts/metabase_api.py list-tables --database-id 2
+python scripts/metabase_api.py find-table --name NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT
+python scripts/metabase_api.py list-fields --table-id 13
 
-# Create a native SQL question (card)
+# Dry-run a query (nothing saved) and verify MBQL reproduces the SQL
+python scripts/metabase_api.py run-query --mbql-file w1.json
+python scripts/metabase_api.py compare --sql-file w1.sql --mbql-file w1.json [--keyed] [--year-dates]
+
+# Create a query-builder question (preferred for Tier 1 / simple Tier 2)
 python scripts/metabase_api.py create-card \
   --name "Save vs Save & Create" \
   --description-file desc.txt \
-  --sql-file query.sql \
+  --mbql-file w1.json \
   --display bar \
   --collection-id 63
+
+# Create a native SQL question (Tier 3, or fallback)
+python scripts/metabase_api.py create-card --name "Role Creation Funnel" --sql-file w3.sql --display funnel
 
 # Create a dashboard and add cards to it
 python scripts/metabase_api.py create-dashboard \
@@ -400,7 +420,7 @@ Stage 2 requires these environment variables (or values from a local `.env` file
 
 | Variable                         | Required | Description                                                          |
 | -------------------------------- | -------- | -------------------------------------------------------------------- |
-| `METABASE_BASE_URL`              | Yes      | Base URL, no trailing slash (e.g. `https://metabase.example.com`)    |
+| `METABASE_BASE_URL`              | Yes      | Base URL (e.g. `https://metabase.example.com`); a pasted page URL is trimmed to the host |
 | `METABASE_API_KEY`               | Yes      | API key created in Admin → Settings → Authentication → API Keys      |
 | `METABASE_DATABASE_ID`           | Yes      | Numeric ID of the database the queries run against                   |
 | `METABASE_DEFAULT_COLLECTION_ID` | No       | Default collection for new cards/dashboards (omit for personal root) |

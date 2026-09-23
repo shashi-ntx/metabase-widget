@@ -306,7 +306,7 @@ def parse_review(path: Path) -> dict[str, Any]:
         if is_ready and not sql:
             errors.append(
                 f"Row {row.number} '{title}' is Ready but no SQL code block was found in its Recommended Approach. "
-                "Stage 2 needs a `SQL equivalent (used for Stage 2 API creation)` block."
+                "Stage 2 needs a `SQL equivalent (verification + fallback)` block."
             )
             continue
 

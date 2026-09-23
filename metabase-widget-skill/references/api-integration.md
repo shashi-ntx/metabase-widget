@@ -8,7 +8,7 @@ The skill talks to Metabase through `scripts/metabase_api.py`. This document exp
 
 Before Stage 2 will work the user needs:
 
-1. **A Metabase instance URL** — e.g. `https://metabase.yourcompany.com` (no trailing slash).
+1. **A Metabase instance URL** — e.g. `https://metabase.yourcompany.com`. If the user pastes a page URL (`…/collection/26-foo`), the script keeps only the scheme and host. The trailing number in a collection URL is the collection ID.
 2. **An API key:**
    - Admin → Settings → Authentication → **API Keys** → **Manage** → **Create API Key**.
    - Give it a descriptive name (`widget-builder-skill`).
@@ -57,17 +57,23 @@ The skill only uses a small subset of the Metabase API. Other endpoints exist; d
 | Purpose                                | Method | Endpoint                                                   | Used for                                    |
 | -------------------------------------- | ------ | ---------------------------------------------------------- | ------------------------------------------- |
 | List databases                         | GET    | `/api/database`                                            | Resolve `METABASE_DATABASE_ID`              |
-| Get database metadata (tables, fields) | GET    | `/api/database/{id}/metadata?include_hidden=true`          | (Optional) build field-ID map               |
+| Get database metadata (tables, fields) | GET    | `/api/database/{id}/metadata?include_hidden=true`          | List tables                                 |
+| Find a table by name                   | GET    | `/api/search?q=<name>&models=table`                        | MBQL `source-table` ID                      |
+| Table fields                           | GET    | `/api/table/{id}/query_metadata`                           | MBQL field IDs                              |
+| Metabase version                       | GET    | `/api/session/properties` (`version.tag`)                  | Connectivity check                          |
 | List collections                       | GET    | `/api/collection`                                          | Resolve `METABASE_DEFAULT_COLLECTION_ID`    |
 | Search dashboards / cards              | GET    | `/api/search?q=<term>&models=dashboard` (or `models=card`) | Resolve "add to existing dashboard" by name |
 
 ### Create / read questions (cards)
 
-| Purpose       | Method | Endpoint               |
-| ------------- | ------ | ---------------------- |
-| Create a card | POST   | `/api/card`            |
-| Get a card    | GET    | `/api/card/{id}`       |
-| Run a card    | POST   | `/api/card/{id}/query` |
+| Purpose                       | Method | Endpoint               |
+| ----------------------------- | ------ | ---------------------- |
+| Create a card                 | POST   | `/api/card`            |
+| Get a card                    | GET    | `/api/card/{id}`       |
+| Run a card                    | POST   | `/api/card/{id}/query` |
+| Run an ad-hoc query (no save) | POST   | `/api/dataset`         |
+
+Always dry-run each query through `/api/dataset` (`run-query` / `compare`) before creating cards. That way a broken query is caught before anything is saved.
 
 ### Create / update dashboards
 
@@ -124,13 +130,99 @@ Response (truncated):
 
 Card URL for the user: `${METABASE_BASE_URL}/question/${id}`.
 
-### Tier 1 / Tier 2 → SQL fallback
+### Tier 1 / simple Tier 2 → query-builder (MBQL) cards
 
-Metabase questions built in the Query Builder use MBQL (a JSON query language) which references columns by numeric **field ID**, not name. Field IDs are instance-specific and require a metadata fetch per database. Translating arbitrary Query Builder steps (filters, custom columns, summarize, breakouts, sort, limit) into MBQL is error-prone.
+**Default: create Tier 1 and simple Tier 2 widgets as query-builder questions**, not SQL. Designers and PMs can open and tweak a query-builder card in the notebook editor; a SQL card forces them to edit SQL. Verified on Metabase v0.63.2.
 
-**Pragmatic default:** the skill creates **every** card as a native SQL question (`type: "native"`), even for Tier 1 and Tier 2 widgets. The Query Builder instructions remain in `widget-review.md` so the user can rebuild the question visually if they want; the saved card is functionally identical.
+MBQL references tables and columns by numeric ID, so Stage 2 resolves them first:
 
-The SQL used for the API call lives in the `**SQL equivalent (used for Stage 2 API creation):**` code block at the bottom of each Tier 1/2 detailed section in `widget-review.md`. Stage 1 must always populate this block; if it can't, flag the row.
+```bash
+python scripts/metabase_api.py find-table --name <DB_TABLE_NAME>   # → source-table ID
+python scripts/metabase_api.py list-fields --table-id <id>         # → field IDs by DB column name
+```
+
+Then translate the widget's Query Builder steps into an MBQL file, **verify it against the SQL equivalent**, and only then create the card:
+
+```bash
+python scripts/metabase_api.py compare --sql-file w1.sql --mbql-file w1.json   # exit 1 on mismatch
+python scripts/metabase_api.py create-card --name "…" --mbql-file w1.json --display bar \
+  --visualization-settings '{"graph.dimensions":["DESTINATION_NAME"],"graph.metrics":["TOTAL_CLICKS"]}'
+```
+
+If `compare` reports a mismatch you can't explain, or the query fails, **fall back to the SQL equivalent** for that widget and note it in the Result column (`SQL fallback: <reason>`).
+
+#### MBQL cheat sheet (legacy MBQL, accepted by v0.63)
+
+The `--mbql-file` may contain just the inner `query` object; the script wraps it with `type`/`database`.
+
+```json
+{
+  "source-table": 13,
+  "filter": [
+    "and",
+    [
+      "not",
+      [
+        "starts-with",
+        ["field", 255, null],
+        "Nutanix",
+        { "case-sensitive": true }
+      ]
+    ],
+    ["not-null", ["field", 261, null]],
+    ["=", ["field", 301, null], "save_role", "save_role_create_policy"]
+  ],
+  "aggregation": [
+    [
+      "aggregation-options",
+      ["count"],
+      { "name": "TOTAL_CLICKS", "display-name": "Total Clicks" }
+    ],
+    [
+      "aggregation-options",
+      ["distinct", ["field", 262, null]],
+      { "name": "USERS", "display-name": "Users" }
+    ]
+  ],
+  "breakout": [
+    ["field", 301, null],
+    ["field", 184, { "temporal-unit": "month" }]
+  ],
+  "order-by": [["desc", ["aggregation", 0]]],
+  "limit": 10
+}
+```
+
+| Query Builder step          | MBQL                                                                                                                              |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Column is `a`               | `["=", F, "a"]`                                                                                                                   |
+| Column is any of `a`, `b`   | `["=", F, "a", "b"]`                                                                                                              |
+| Starts with / contains      | `["starts-with", F, "x", {"case-sensitive": true}]`, `["contains", F, "x", {...}]`                                                |
+| Does not start with         | `["not", ["starts-with", F, "x", {"case-sensitive": true}]]`                                                                      |
+| Is not empty / is empty     | `["not-null", F]` / `["is-null", F]`                                                                                              |
+| Count of rows               | `["count"]`                                                                                                                       |
+| Distinct values of          | `["distinct", F]`                                                                                                                 |
+| Sum / Avg / Min / Max       | `["sum", F]`, `["avg", F]`, `["min", F]`, `["max", F]`                                                                            |
+| Group by date: Month / Year | `["field", id, {"temporal-unit": "month"}]`                                                                                       |
+| Custom column               | `"expressions": {"Label": ["case", [[cond, "A"], [cond2, "B"]], {"default": "Other"}]}`, refer to it as `["expression", "Label"]` |
+| Sort by metric desc         | `"order-by": [["desc", ["aggregation", 0]]]`                                                                                      |
+
+`F` = `["field", <field_id>, null]`.
+
+**Always name aggregations** with `aggregation-options` so `visualization_settings` can refer to stable column names (`TOTAL_CLICKS`) instead of auto-generated ones (`count`, `count_2`).
+
+#### MBQL gotchas found in practice
+
+- **Match SQL `LIKE` case-sensitivity explicitly.** Text filters default to case-insensitive in the builder. Pass `{"case-sensitive": true}` when reproducing SQL `LIKE` / `NOT LIKE`.
+- **`NOT LIKE` drops NULLs; the builder must too.** `["not", ["starts-with", …]]` compiles to `NOT (col LIKE 'x%')`, which excludes NULL rows exactly like SQL. Verify with `compare` rather than assuming.
+- **`COUNT(col)` ≠ Count of rows** when `col` has NULLs. Add a `["not-null", F]` filter (e.g. counting `CREATED_DATE` by year).
+- **Year breakouts return dates** (`2019-01-01T00:00:00Z`), where SQL `YEAR()` returns `2019`. Use `compare --year-dates`. For display, set the column's date style to year only if needed.
+- **Ad-hoc results are capped (~2000 rows).** Use `compare --keyed` for large grouped tables; it compares values per key over the overlap.
+- **Multi-step logic** (summarize → bucket → summarize again) is possible via nested stages (`"source-query"`), but is harder for designers to edit. Treat it as Tier 2 only when each stage is simple; otherwise keep SQL.
+
+### SQL equivalent is still required
+
+Stage 1 must still write a `**SQL equivalent (verification + fallback):**` block for every Tier 1/2 widget. Stage 2 uses it to verify the MBQL card and as the fallback if the MBQL can't be built. If Stage 1 can't produce it, flag the row.
 
 ### Create a dashboard
 
@@ -208,7 +300,7 @@ The skill must set `visualization_settings` for charts that need explicit dimens
 | `gauge`        | `gauge.segments: [{min, max, color}, ...]`                                        |
 | `table`        | `{}` (or `table.columns` for explicit ordering)                                   |
 
-Column names in `visualization_settings` are the **uppercase aliases** from the SQL query (e.g. `TOTAL_CLICKS`, `ACTION_LABEL`) — i.e. the names that appear in query results.
+Column names in `visualization_settings` are the result column names. For SQL cards these are the **uppercase aliases** from the query (e.g. `TOTAL_CLICKS`, `ACTION_LABEL`). For MBQL cards they are the DB column name for breakouts (e.g. `DESTINATION_NAME`) and the `aggregation-options` `name` for metrics.
 
 ## Display value mapping
 

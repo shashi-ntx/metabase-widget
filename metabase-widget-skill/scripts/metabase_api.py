@@ -4,13 +4,17 @@
 Stdlib-only. Reads config from environment variables (and an optional .env in CWD).
 
 Subcommands:
-    check                    Verify connectivity (GET /api/user/current, GET /api/database/{id})
+    check                    Verify connectivity, report Metabase version, database, collection
     list-databases           GET /api/database
     list-collections         GET /api/collection
     list-tables              GET /api/database/{id}/metadata
+    find-table               GET /api/search?models=table (resolve a table ID by name)
+    list-fields              GET /api/table/{id}/query_metadata (field IDs for MBQL)
     find-dashboard           GET /api/search?models=dashboard or extract ID from URL
     get-dashboard            GET /api/dashboard/{id}
-    create-card              POST /api/card (native SQL)
+    run-query                POST /api/dataset (ad-hoc SQL or MBQL, nothing saved)
+    compare                  Run a SQL and an MBQL query and check the results match
+    create-card              POST /api/card (native SQL or query-builder MBQL)
     create-dashboard         POST /api/dashboard
     put-dashboard-cards      PUT /api/dashboard/{id} with a dashcards array
     run-card                 POST /api/card/{id}/query
@@ -66,7 +70,7 @@ def require_env(name: str) -> str:
 
 def get_config() -> dict[str, Any]:
     load_dotenv()
-    base_url = require_env("METABASE_BASE_URL").rstrip("/")
+    base_url = normalize_base_url(require_env("METABASE_BASE_URL"))
     return {
         "base_url": base_url,
         "api_key": require_env("METABASE_API_KEY"),
@@ -77,6 +81,14 @@ def get_config() -> dict[str, Any]:
             "NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT",
         ),
     }
+
+
+def normalize_base_url(url: str) -> str:
+    """Users often paste a page URL (…/collection/26-foo, …/dashboard/19). Keep only scheme + host."""
+    parsed = urllib.parse.urlparse(url.strip())
+    if parsed.scheme and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}"
+    return url.strip().rstrip("/")
 
 
 def _int_or_none(s: str | None) -> int | None:
@@ -180,6 +192,11 @@ def cmd_check(args) -> int:
         print(f"✗ Auth check failed: {e}", file=sys.stderr)
         return 1
     try:
+        props = request("GET", "/api/session/properties")
+        print(f"✓ Metabase version: {(props.get('version') or {}).get('tag', '<unknown>')}")
+    except ApiError:
+        print("? Metabase version: could not read /api/session/properties")
+    try:
         db = request("GET", f"/api/database/{cfg['database_id']}")
         print(f"✓ Database {cfg['database_id']}: {db.get('name')} ({db.get('engine')})")
     except ApiError as e:
@@ -221,6 +238,93 @@ def cmd_list_tables(args) -> int:
     for t in meta.get("tables", []):
         print(f"{t['id']:>5}  {t.get('schema','?'):<15}  {t['name']}")
     return 0
+
+
+def cmd_find_table(args) -> int:
+    cfg = get_config()
+    result = request("GET", "/api/search", query={"q": args.name, "models": "table"})
+    items = result.get("data", []) if isinstance(result, dict) else result
+    db_id = args.database_id or cfg["database_id"]
+    out = [
+        {"id": i["id"], "name": i.get("name"), "schema": i.get("table_schema"), "database_id": i.get("database_id")}
+        for i in items
+        if i.get("database_id") in (None, db_id)
+    ]
+    print(json.dumps(out, indent=2))
+    return 0
+
+
+def cmd_list_fields(args) -> int:
+    meta = request("GET", f"/api/table/{args.table_id}/query_metadata")
+    print(f"Table {meta['id']}: {meta.get('display_name')} ({meta.get('schema')}.{meta.get('name')})")
+    for f in sorted(meta.get("fields", []), key=lambda f: f["name"]):
+        print(f"{f['id']:>7}  {f['name']:<40}  {f.get('display_name',''):<40}  {f.get('base_type','')}")
+    return 0
+
+
+def _dataset_query(sql: str | None = None, mbql: dict | None = None) -> dict:
+    """Build a dataset_query. MBQL may be a full dataset_query or just the inner `query` object."""
+    cfg = get_config()
+    if sql is not None:
+        return {"database": cfg["database_id"], "type": "native", "native": {"query": sql, "template-tags": {}}}
+    if mbql is None:
+        raise ValueError("Provide SQL or MBQL.")
+    if mbql.get("type") == "query":
+        return {**mbql, "database": mbql.get("database", cfg["database_id"])}
+    return {"database": cfg["database_id"], "type": "query", "query": mbql}
+
+
+def _run_dataset(dq: dict) -> list[list]:
+    res = request_with_retry("POST", "/api/dataset", body=dq, timeout=300)
+    if res.get("error") or res.get("status") != "completed":
+        raise ApiError(400, str(res.get("error")), "Query failed. Check field IDs / SQL in the Metabase editor.")
+    return res["data"]["rows"]
+
+
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T")
+
+
+def _normalize_rows(rows: list[list], year_dates: bool) -> list[tuple]:
+    """MBQL year breakouts return '2019-01-01T00:00:00Z' where SQL YEAR() returns 2019."""
+    def norm(v):
+        if year_dates and isinstance(v, str) and _DATE_RE.match(v):
+            return int(v[:4])
+        if isinstance(v, float) and v.is_integer():
+            return int(v)
+        return v
+    return [tuple(norm(v) for v in r) for r in rows]
+
+
+def cmd_run_query(args) -> int:
+    sql = _read_text_arg(args.sql, args.sql_file)
+    mbql = _read_json_arg(None, args.mbql_file)
+    rows = _run_dataset(_dataset_query(sql=sql, mbql=mbql) if sql else _dataset_query(mbql=mbql))
+    print(json.dumps({"row_count": len(rows), "rows": rows[: args.limit]}, indent=2, default=str))
+    return 0
+
+
+def cmd_compare(args) -> int:
+    """Exit 0 when the MBQL question reproduces the SQL question, 1 otherwise."""
+    sql_rows = _normalize_rows(_run_dataset(_dataset_query(sql=Path(args.sql_file).read_text())), args.year_dates)
+    mb_rows = _normalize_rows(_run_dataset(_dataset_query(mbql=_read_json_arg(None, args.mbql_file))), args.year_dates)
+
+    if args.keyed:
+        # Large grouped results are truncated (~2000 rows), so compare by first-column key over the overlap.
+        a = {r[0]: r[1:] for r in sql_rows}
+        b = {r[0]: r[1:] for r in mb_rows}
+        common = a.keys() & b.keys()
+        diffs = sorted((k for k in common if a[k] != b[k]), key=str)
+        ok = not diffs and len(common) >= 0.95 * min(len(a), len(b))
+        print(f"{'MATCH' if ok else 'DIFF'}: {len(common)} common keys, {len(diffs)} differ")
+        for k in diffs[:10]:
+            print(f"  {k!r}: sql={a[k]} mbql={b[k]}")
+    else:
+        ok = sorted(sql_rows, key=str) == sorted(mb_rows, key=str)
+        print(f"{'MATCH' if ok else 'DIFF'}: sql={len(sql_rows)} rows, mbql={len(mb_rows)} rows")
+        if not ok:
+            print(f"  sql  sample: {sql_rows[:5]}")
+            print(f"  mbql sample: {mb_rows[:5]}")
+    return 0 if ok else 1
 
 
 def cmd_find_dashboard(args) -> int:
@@ -274,8 +378,9 @@ def _read_json_arg(value: str | None, file_arg: str | None) -> Any:
 def cmd_create_card(args) -> int:
     cfg = get_config()
     sql = _read_text_arg(args.sql, args.sql_file)
-    if not sql:
-        print("Provide --sql or --sql-file.", file=sys.stderr)
+    mbql = _read_json_arg(None, args.mbql_file)
+    if bool(sql) == bool(mbql):
+        print("Provide exactly one of --sql / --sql-file / --mbql-file.", file=sys.stderr)
         return 2
     description = _read_text_arg(args.description, args.description_file) or ""
     viz_settings = _read_json_arg(args.visualization_settings, args.visualization_settings_file) or {}
@@ -287,19 +392,13 @@ def cmd_create_card(args) -> int:
         "collection_id": collection_id,
         "display": args.display,
         "visualization_settings": viz_settings,
-        "dataset_query": {
-            "database": cfg["database_id"],
-            "type": "native",
-            "native": {
-                "query": sql,
-                "template-tags": {},
-            },
-        },
+        "dataset_query": _dataset_query(sql=sql) if sql else _dataset_query(mbql=mbql),
     }
     card = request_with_retry("POST", "/api/card", body=payload)
     out = {
         "id": card["id"],
         "name": card["name"],
+        "query_type": card.get("query_type"),
         "url": f"{cfg['base_url']}/question/{card['id']}",
     }
     print(json.dumps(out, indent=2))
@@ -368,6 +467,31 @@ def build_parser() -> argparse.ArgumentParser:
     pt.add_argument("--database-id", type=int)
     pt.set_defaults(func=cmd_list_tables)
 
+    ptb = sub.add_parser("find-table", help="Resolve a table ID by name (needed for MBQL source-table)")
+    ptb.add_argument("--name", required=True, help="DB table name, e.g. NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT")
+    ptb.add_argument("--database-id", type=int)
+    ptb.set_defaults(func=cmd_find_table)
+
+    pfl = sub.add_parser("list-fields", help="List field IDs, DB names, display names for a table")
+    pfl.add_argument("--table-id", type=int, required=True)
+    pfl.set_defaults(func=cmd_list_fields)
+
+    prq = sub.add_parser("run-query", help="Run ad-hoc SQL or MBQL without saving anything")
+    prq.add_argument("--sql")
+    prq.add_argument("--sql-file")
+    prq.add_argument("--mbql-file", help="JSON: full dataset_query or just the inner MBQL `query` object")
+    prq.add_argument("--limit", type=int, default=20, help="Rows to print")
+    prq.set_defaults(func=cmd_run_query)
+
+    pcm = sub.add_parser("compare", help="Check an MBQL question reproduces a SQL question (exit 1 on mismatch)")
+    pcm.add_argument("--sql-file", required=True)
+    pcm.add_argument("--mbql-file", required=True)
+    pcm.add_argument("--keyed", action="store_true",
+                     help="Compare by first column over the overlapping keys (use for large grouped tables)")
+    pcm.add_argument("--year-dates", action="store_true",
+                     help="Treat MBQL date strings as years (for breakouts with temporal-unit: year)")
+    pcm.set_defaults(func=cmd_compare)
+
     pf = sub.add_parser("find-dashboard", help="Find a dashboard by name or URL")
     pf.add_argument("--query")
     pf.add_argument("--url")
@@ -377,12 +501,13 @@ def build_parser() -> argparse.ArgumentParser:
     pg.add_argument("--dashboard-id", type=int, required=True)
     pg.set_defaults(func=cmd_get_dashboard)
 
-    pc = sub.add_parser("create-card", help="Create a native SQL question")
+    pc = sub.add_parser("create-card", help="Create a question from SQL or query-builder MBQL")
     pc.add_argument("--name", required=True)
     pc.add_argument("--description")
     pc.add_argument("--description-file")
     pc.add_argument("--sql")
     pc.add_argument("--sql-file")
+    pc.add_argument("--mbql-file", help="JSON: full dataset_query or just the inner MBQL `query` object")
     pc.add_argument("--display", default="table",
                     help="Metabase display value: table, bar, row, line, area, pie, scalar, smartscalar, funnel, scatter, combo, waterfall, progress, gauge, map, pivot")
     pc.add_argument("--visualization-settings", help="JSON string")

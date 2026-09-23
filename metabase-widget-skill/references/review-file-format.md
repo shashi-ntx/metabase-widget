@@ -49,7 +49,7 @@ This document defines:
 - **Alternative Approach** — one-line description of a fallback (often the SQL equivalent of a Query Builder approach, or vice versa).
 - **Alt Tier / Alt Visualization** — same as above for the alternative; use `—` if none.
 - **Status** — see status legend.
-- **Result** — `_(pending)_` until Stage 2 runs. After Stage 2: a markdown link to the created card (`[#123](https://metabase.example.com/question/123)`), or an error message prefixed `❌ Error:`.
+- **Result** — `_(pending)_` until Stage 2 runs. After Stage 2: a markdown link to the created card plus how it was built (`[#123](https://metabase.example.com/question/123) (Query Builder)` or `… (SQL fallback: <reason>)`), or an error message prefixed `❌ Error:`.
 ```
 
 ## Detailed per-widget sections
@@ -74,7 +74,7 @@ Below the summary table, write one section per `✅ Ready` widget — in row-num
 #### Recommended Approach
 
 <Tier 1/2/3 build instructions in the format defined in SKILL.md.
-For Tier 1/2: include the "SQL equivalent (used for Stage 2 API creation)" block at the bottom — this is what the skill will actually POST to /api/card.>
+For Tier 1/2: include the "SQL equivalent (verification + fallback)" block at the bottom. Stage 2 builds the card in the Query Builder, checks it against this SQL, and saves the SQL only if the Query Builder version fails.>
 
 #### Alternative 1 — <short label>
 
@@ -377,7 +377,7 @@ How often do users save their roles versus save and go to policy creation?
 **Visualization:** bar
 **Why this chart:** Two-row comparison — bar makes the magnitude immediate.
 
-**SQL equivalent (used for Stage 2 API creation):**
+**SQL equivalent (verification + fallback):**
 
 ```sql
 SELECT
