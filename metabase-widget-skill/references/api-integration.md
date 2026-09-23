@@ -15,20 +15,23 @@ Before Stage 2 will work the user needs:
    - Assign a group with permissions to (a) read the target database and (b) write to the target collection. A dedicated service-account-level key is strongly preferred over a personal admin key.
    - Copy the key immediately — it is shown only once.
 3. **The database ID** of the data source the queries run against. Find it with `python scripts/metabase_api.py list-databases` (or `GET /api/database`).
-4. **The collection ID** where cards and dashboards should be saved. Find with `list-collections` (or `GET /api/collection`). Optional — omit to save to the user's personal root.
+4. **The collection ID** where dashboards should be saved (and where
+   standalone questions go in Flow 3). Find with `list-collections` (or
+   `GET /api/collection`). In Flow 1/2, cards use the dashboard ID instead of
+   this collection ID.
 5. **The table name** for SQL queries (defaults to `NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT`).
 
 ## Configuration
 
 The skill reads configuration from environment variables, falling back to a local `.env` file if one is present in the working directory. Copy `.env.example` to `.env` and fill it in.
 
-| Variable                         | Required | Default                                                    | Notes                                                            |
-| -------------------------------- | -------- | ---------------------------------------------------------- | ---------------------------------------------------------------- |
-| `METABASE_BASE_URL`              | yes      | —                                                          | No trailing slash. Used as the prefix for all API calls and URLs |
-| `METABASE_API_KEY`               | yes      | —                                                          | Sent as `X-API-Key` header on every request                      |
-| `METABASE_DATABASE_ID`           | yes      | —                                                          | Numeric ID; used as `database` in `dataset_query`                |
-| `METABASE_DEFAULT_COLLECTION_ID` | no       | `null` (personal root)                                     | Numeric ID                                                       |
-| `METABASE_DEFAULT_TABLE_NAME`    | no       | `NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT` | Used only for default SQL templates                              |
+| Variable                         | Required | Default                                                    | Notes                                                                  |
+| -------------------------------- | -------- | ---------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `METABASE_BASE_URL`              | yes      | —                                                          | No trailing slash. Used as the prefix for all API calls and URLs       |
+| `METABASE_API_KEY`               | yes      | —                                                          | Sent as `X-API-Key` header on every request                            |
+| `METABASE_DATABASE_ID`           | yes      | —                                                          | Numeric ID; used as `database` in `dataset_query`                      |
+| `METABASE_DEFAULT_COLLECTION_ID` | no       | `null` (personal root)                                     | Numeric dashboard collection ID; also used for Flow 3 standalone cards |
+| `METABASE_DEFAULT_TABLE_NAME`    | no       | `NUSIGHTS_EVENTS_ACTIVITYTYPE_DEFAULT_HISTORICAL_TBL_FLAT` | Used only for default SQL templates                                    |
 
 Never commit `.env` or any file containing the API key. `.env` should be `.gitignore`d.
 
@@ -86,9 +89,24 @@ Always dry-run each query through `/api/dataset` (`run-query` / `compare`) befor
 
 ## Payloads
 
-### Create a native SQL card (dashboard-scoped)
+### Create a dashboard-scoped card
 
-Cards are saved **inside the dashboard** using the `dashboard_id` parameter (Metabase v0.51+). This prevents cards from appearing as standalone items in the collection, keeping the landing page clean.
+Cards are **scoped to the dashboard** using the `dashboard_id` parameter
+(Metabase v0.51+). This prevents cards from appearing as standalone items in
+the collection, keeping the landing page clean. This applies equally to native
+SQL and Query Builder (MBQL) cards.
+
+**Auto-placement (verified on v0.63.2):** `POST /api/card` with `dashboard_id`
+also adds a dashcard for that card to the dashboard (at the bottom, default
+size). `create-card` returns its `dashcard_id`. When laying out:
+
+- Reposition that dashcard by sending its real positive `id` with the new
+  `row`/`col`/`size_x`/`size_y`. Do **not** add a second dashcard with a
+  negative `id` for the same card; that duplicates the tile.
+- Never omit it from the `PUT /api/dashboard/{id}` array. Removing a
+  dashboard-scoped card's only dashcard **archives the card**.
+
+`put-dashboard-cards` refuses payloads that would do either.
 
 `POST /api/card` body:
 
@@ -113,9 +131,12 @@ Cards are saved **inside the dashboard** using the `dashboard_id` parameter (Met
 }
 ```
 
-**Key point:** Pass `"dashboard_id"` (not `"collection_id"`) when creating cards. The dashboard itself is created with `collection_id`; cards inherit their scope from the dashboard. Cards with `dashboard_id` set are invisible in collection listings and only appear when viewing the dashboard.
+**Key point:** Pass `"dashboard_id"` (not `"collection_id"`) when creating cards
+for Flow 1 or Flow 2. The dashboard itself is created with `collection_id`;
+cards inherit their scope from the dashboard. Cards with `dashboard_id` set do
+not appear in collection listings.
 
-**Fallback (pre-v0.51):** If the Metabase instance does not support `dashboard_id`, fall back to `"collection_id"` on the card. Cards will then appear as standalone items in the collection alongside the dashboard.
+**Scope rule:** In Flow 1 (new dashboard) and Flow 2 (existing dashboard), never silently fall back to `collection_id`. If the API does not return the requested `dashboard_id`, stop and report the incompatibility instead of leaving a standalone card in the collection. Flow 3 (questions only) intentionally uses `collection_id` and creates standalone questions.
 
 Response (truncated):
 
@@ -146,6 +167,7 @@ Then translate the widget's Query Builder steps into an MBQL file, **verify it a
 ```bash
 python scripts/metabase_api.py compare --sql-file w1.sql --mbql-file w1.json   # exit 1 on mismatch
 python scripts/metabase_api.py create-card --name "…" --mbql-file w1.json --display bar \
+  --dashboard-id 14 \
   --visualization-settings '{"graph.dimensions":["DESTINATION_NAME"],"graph.metrics":["TOTAL_CLICKS"]}'
 ```
 

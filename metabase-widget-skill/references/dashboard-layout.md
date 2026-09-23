@@ -50,12 +50,13 @@ Only do this if the user asks — default is no headings, just packed widgets.
 
 ## Adding to an existing dashboard (Flow 2)
 
-1. `GET /api/dashboard/{id}` and read the current `dashcards` array.
+1. `GET /api/dashboard/{id}` and read the current `dashcards` array **before creating any cards** (created cards are auto-added and would skew `max_row`).
 2. Compute `max_row = max(dc.row + dc.size_y for dc in existing)` — this is the first free row below the existing content.
 3. Start the auto-layout algorithm at `row_cursor = max_row`, `col_cursor = 0`.
 4. Build the final `dashcards` payload as the **union** of:
    - Existing dashcards, unchanged (keep their positive `id`s and positions).
-   - New dashcards with negative `id`s (`-1`, `-2`, …) at the computed positions.
+   - The new cards' auto-added dashcards (the `dashcard_id` from `create-card`) at the computed positions.
+   - Headings/text only: new `virtual_card` dashcards with negative `id`s.
 5. `PUT /api/dashboard/{id}` with that combined array.
 
 Do **not** rearrange existing cards — preserve the user's curated layout above the new content.
@@ -129,6 +130,6 @@ The resulting `dashcards`:
 
 - `col` is 0–23 inclusive. `col + size_x` must be ≤ 24.
 - `size_x` minimum is 1; `size_y` minimum is 1. Practical minimums for legibility: 4×3 for scalars, 6×4 otherwise.
-- New dashcards **must** have negative integer `id`s (`-1`, `-2`, …). Existing ones keep their positive IDs.
+- New dashcards **must** have negative integer `id`s (`-1`, `-2`, …). Existing ones keep their positive IDs. Dashboard-scoped cards are never new dashcards: reuse their auto-added positive `dashcard_id`.
 - `parameter_mappings` is optional; default `[]`. Only populate when the dashboard has parameters and the card consumes them.
 - `visualization_settings` on the dashcard overrides the card's own settings for that placement — leave as `{}` unless the user asks for a dashboard-specific override.

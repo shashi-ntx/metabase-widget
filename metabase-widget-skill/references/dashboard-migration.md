@@ -75,12 +75,21 @@ Discover the rest yourself: database ID (`list-databases`), table ID (`find-tabl
 ## Build order
 
 1. `check`, then dry-run every translated query with `run-query`. Fix failures before creating anything.
-2. Create all cards as SQL (the faithful baseline), create the dashboard, and place the cards.
+2. Create the dashboard first in the target collection. Then create every card
+   with `dashboard_id=<new dashboard ID>` (never `collection_id`). Metabase
+   auto-adds each card to the dashboard; lay them out by repositioning the
+   returned `dashcard_id`s. Dashboard-scoped cards do not appear as standalone
+   collection items.
 3. **Offer to convert simple cards to the Query Builder**, so designers can edit them. Classify each card:
    - **Easy:** one filter + summarize + group-by (KPIs, counts by a dimension, counts by year, per-customer tables). Convert these.
    - **Medium:** summarize → bucket with `case` → summarize again. Only convert on request, using nested MBQL stages.
    - **Hard:** multiple nested aggregations plus complex bucketing. Keep as SQL.
-4. For each conversion, build the MBQL, run `compare` against the SQL card's query, and only on `MATCH` create the MBQL card and swap it into the dashcard (same position, new `card_id`). Offer to archive the replaced SQL cards so designers don't open the wrong copy.
+4. For each conversion, build the MBQL, run `compare` against the SQL card's
+   query, and only on `MATCH` create the MBQL card with the same
+   `dashboard_id`. Move its auto-added dashcard to the old card's position and
+   drop the old card's dashcard in the same PUT; Metabase archives the
+   replaced dashboard-scoped card automatically. (`put-dashboard-cards` blocks
+   this drop, so do the swap with a direct `PUT /api/dashboard/{id}`.)
 
 ## Report back
 

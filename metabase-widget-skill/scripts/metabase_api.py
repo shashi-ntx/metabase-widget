@@ -14,7 +14,8 @@ Subcommands:
     get-dashboard            GET /api/dashboard/{id}
     run-query                POST /api/dataset (ad-hoc SQL or MBQL, nothing saved)
     compare                  Run a SQL and an MBQL query and check the results match
-    create-card              POST /api/card (native SQL or query-builder MBQL)
+    create-card              POST /api/card (native SQL or query-builder MBQL;
+                             --dashboard-id for dashboard-scoped cards)
     create-dashboard         POST /api/dashboard
     put-dashboard-cards      PUT /api/dashboard/{id} with a dashcards array
     run-card                 POST /api/card/{id}/query
@@ -384,23 +385,53 @@ def cmd_create_card(args) -> int:
         return 2
     description = _read_text_arg(args.description, args.description_file) or ""
     viz_settings = _read_json_arg(args.visualization_settings, args.visualization_settings_file) or {}
-    collection_id = args.collection_id if args.collection_id is not None else cfg["default_collection_id"]
 
     payload: dict[str, Any] = {
         "name": args.name,
-        "description": description,
-        "collection_id": collection_id,
+        "description": description or None,
         "display": args.display,
         "visualization_settings": viz_settings,
         "dataset_query": _dataset_query(sql=sql) if sql else _dataset_query(mbql=mbql),
     }
+    if args.dashboard_id is not None:
+        # Dashboard workflows must use dashboard-scoped cards. Metabase v0.51+
+        # keeps these cards out of the collection's standalone card listing.
+        payload["dashboard_id"] = args.dashboard_id
+    else:
+        payload["collection_id"] = (
+            args.collection_id if args.collection_id is not None else cfg["default_collection_id"]
+        )
+
     card = request_with_retry("POST", "/api/card", body=payload)
+    if args.dashboard_id is not None and card.get("dashboard_id") != args.dashboard_id:
+        # Verify the server honored the scope; repair once for instances that
+        # accept the create request but omit the field in their response.
+        card = request_with_retry(
+            "PUT", f"/api/card/{card['id']}", body={"dashboard_id": args.dashboard_id}
+        )
+    if args.dashboard_id is not None and card.get("dashboard_id") != args.dashboard_id:
+        request_with_retry("PUT", f"/api/card/{card['id']}", body={"archived": True})
+        raise ApiError(
+            0,
+            f"Metabase created card {card.get('id')} without dashboard_id={args.dashboard_id}; "
+            "the card was archived.",
+            "Check that the dashboard exists and the API key can write to it.",
+        )
+
     out = {
         "id": card["id"],
         "name": card["name"],
         "query_type": card.get("query_type"),
+        "dashboard_id": card.get("dashboard_id"),
         "url": f"{cfg['base_url']}/question/{card['id']}",
     }
+    if args.dashboard_id is not None:
+        # Metabase auto-adds a dashcard for dashboard-scoped cards; layout must
+        # reposition this dashcard rather than add a second one.
+        dash = request_with_retry("GET", f"/api/dashboard/{args.dashboard_id}")
+        out["dashcard_id"] = next(
+            (d["id"] for d in dash.get("dashcards", []) if d.get("card_id") == card["id"]), None
+        )
     print(json.dumps(out, indent=2))
     return 0
 
@@ -410,7 +441,7 @@ def cmd_create_dashboard(args) -> int:
     collection_id = args.collection_id if args.collection_id is not None else cfg["default_collection_id"]
     payload: dict[str, Any] = {
         "name": args.name,
-        "description": args.description or "",
+        "description": args.description or None,
         "collection_id": collection_id,
         "parameters": [],
     }
@@ -432,6 +463,29 @@ def cmd_put_dashboard_cards(args) -> int:
         return 2
     if not isinstance(dashcards, list):
         print("dashcards file must contain a JSON array.", file=sys.stderr)
+        return 2
+    # Dropping a dashboard-scoped card's dashcard archives the card, and adding
+    # a new dashcard for it duplicates the tile. Refuse both.
+    current = request_with_retry("GET", f"/api/dashboard/{args.dashboard_id}")
+    scoped = {
+        d["id"]: d["card_id"]
+        for d in current.get("dashcards", [])
+        if (d.get("card") or {}).get("dashboard_id") == args.dashboard_id
+    }
+    sent_ids = {d.get("id") for d in dashcards}
+    dropped = sorted(i for i in scoped if i not in sent_ids)
+    duplicated = sorted(
+        d.get("card_id") for d in dashcards
+        if d.get("card_id") in scoped.values() and d.get("id") not in scoped
+    )
+    if dropped or duplicated:
+        print(
+            "Refusing dashcard update for dashboard-scoped cards. "
+            f"Missing existing dashcard ids (would archive their cards): {dropped}. "
+            f"New dashcards for already-placed scoped card ids (would duplicate): {duplicated}. "
+            "Reuse the dashcard_id returned by create-card with a new row/col/size.",
+            file=sys.stderr,
+        )
         return 2
     payload = {"dashcards": dashcards}
     dash = request_with_retry("PUT", f"/api/dashboard/{args.dashboard_id}", body=payload)
@@ -512,7 +566,12 @@ def build_parser() -> argparse.ArgumentParser:
                     help="Metabase display value: table, bar, row, line, area, pie, scalar, smartscalar, funnel, scatter, combo, waterfall, progress, gauge, map, pivot")
     pc.add_argument("--visualization-settings", help="JSON string")
     pc.add_argument("--visualization-settings-file", help="Path to JSON file")
-    pc.add_argument("--collection-id", type=int)
+    scope = pc.add_mutually_exclusive_group(required=True)
+    scope.add_argument("--dashboard-id", type=int,
+                       help="Create a dashboard-scoped card; required for Flow 1 and Flow 2")
+    scope.add_argument("--collection-id", type=int,
+                       help="Create a standalone collection card; use only for Flow 3 "
+                            "(pass the default collection id explicitly)")
     pc.set_defaults(func=cmd_create_card)
 
     pd = sub.add_parser("create-dashboard", help="Create an empty dashboard")

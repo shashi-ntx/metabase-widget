@@ -222,12 +222,18 @@ When the user confirms:
 2. **Re-read `widget-review.md`.** The user may have edited it. Respect every edit: dropped rows are skipped; swapped approaches use the alternative; edited titles/descriptions/queries are used as-is. Use `scripts/widget_review.py parse` to extract the structured widget list — never re-derive the widget list from the original requirement input.
 3. **Ask which execution flow** the user wants (unless they already said in the confirmation message). See `references/execution-flows.md` for the four supported flows and their decision logic.
 4. **Dry-run every query** with `scripts/metabase_api.py run-query` (`POST /api/dataset`, nothing saved), so a broken query is caught before anything is created.
-5. **Create the cards** with `scripts/metabase_api.py create-card`:
-   - **Tier 1 / simple Tier 2 → MBQL.** Resolve IDs with `find-table` and `list-fields`, and translate the Query Builder steps into an MBQL file. Run `compare --sql-file … --mbql-file …`, then create the card with `--mbql-file`. On a mismatch or error, use the SQL equivalent and mark the result `SQL fallback: <reason>`.
-   - **Tier 3 → SQL** with `--sql-file`.
-6. **Create / update the dashboard** depending on the chosen flow (`POST /api/dashboard`, then `PUT /api/dashboard/{id}` with the dashcards array). Use the layout heuristic in `references/dashboard-layout.md`.
-7. **Write results back into `widget-review.md`**. Add or update the `Result` column in the summary table with the live Metabase URL (or the error message) for each row. Note whether each card is query-builder or SQL. Then append a `## Results` section at the bottom with the dashboard URL, totals, and any failures.
-8. **Report in chat**: total created, how many are query-builder vs SQL (with the reason for any fallback), total failed (with reasons), the dashboard URL, and the path to the updated review file.
+5. **Create or resolve the dashboard before creating cards** for Flow 1 or Flow 2:
+   - Flow 1: `POST /api/dashboard` with the target `collection_id`; capture its ID.
+   - Flow 2: resolve the existing dashboard and capture its ID.
+   - The dashboard ID is mandatory for every card created in these flows.
+6. **Create the cards** with `scripts/metabase_api.py create-card`:
+   - **Tier 1 / simple Tier 2 → MBQL.** Resolve IDs with `find-table` and `list-fields`, and translate the Query Builder steps into an MBQL file. Run `compare --sql-file … --mbql-file …`, then create the card with `--mbql-file --dashboard-id <id>`. On a mismatch or error, use the SQL equivalent and mark the result `SQL fallback: <reason>`.
+   - **Tier 3 → SQL** with `--sql-file --dashboard-id <id>`.
+   - Never silently use `--collection-id` in Flow 1 or Flow 2. The helper verifies that Metabase returns the requested `dashboard_id`; if it does not, creation fails rather than leaking a standalone card into the collection.
+   - Flow 3 is the only flow that uses `--collection-id`, because it intentionally creates standalone questions without a dashboard.
+7. **Lay out the cards** with `put-dashboard-cards` and the full dashcards array, using the heuristic in `references/dashboard-layout.md`. Metabase already added a dashcard for each scoped card; reposition it by the `dashcard_id` that `create-card` returned. Never add a second dashcard for it or leave it out (leaving it out archives the card).
+8. **Write results back into `widget-review.md`**. Add or update the `Result` column in the summary table with the live Metabase URL (or the error message) for each row. Note whether each card is query-builder or SQL and that dashboard-scoped cards were used. Then append a `## Results` section at the bottom with the dashboard URL, totals, and any failures.
+9. **Report in chat**: total created, how many are query-builder vs SQL (with the reason for any fallback), total failed (with reasons), the dashboard URL, and the path to the updated review file.
 
 If any individual card fails to create, **continue with the rest** — record the failure in the review file, still build the dashboard with the cards that succeeded.
 
@@ -380,20 +386,20 @@ python scripts/metabase_api.py create-card \
   --description-file desc.txt \
   --mbql-file w1.json \
   --display bar \
-  --collection-id 63
+  --dashboard-id 123
 
 # Create a native SQL question (Tier 3, or fallback)
-python scripts/metabase_api.py create-card --name "Role Creation Funnel" --sql-file w3.sql --display funnel
+python scripts/metabase_api.py create-card --name "Role Creation Funnel" --sql-file w3.sql --display funnel --dashboard-id 123
 
-# Create a dashboard and add cards to it
+# Create the dashboard first; pass its ID when creating every card
 python scripts/metabase_api.py create-dashboard \
   --name "Role Management — Telemetry" \
   --description "Telemetry widgets for the Role Management feature area." \
   --collection-id 63
 
-python scripts/metabase_api.py add-cards \
+python scripts/metabase_api.py put-dashboard-cards \
   --dashboard-id 123 \
-  --layout-file layout.json
+  --dashcards-file layout.json
 
 # Look up an existing dashboard by name or URL
 python scripts/metabase_api.py find-dashboard --query "Role Management"
@@ -423,7 +429,7 @@ Stage 2 requires these environment variables (or values from a local `.env` file
 | `METABASE_BASE_URL`              | Yes      | Base URL (e.g. `https://metabase.example.com`); a pasted page URL is trimmed to the host |
 | `METABASE_API_KEY`               | Yes      | API key created in Admin → Settings → Authentication → API Keys      |
 | `METABASE_DATABASE_ID`           | Yes      | Numeric ID of the database the queries run against                   |
-| `METABASE_DEFAULT_COLLECTION_ID` | No       | Default collection for new cards/dashboards (omit for personal root) |
+| `METABASE_DEFAULT_COLLECTION_ID` | No       | Collection for new dashboards and Flow 3 standalone cards (omit for personal root) |
 | `METABASE_DEFAULT_TABLE_NAME`    | No       | Default SQL table name (defaults to the flat telemetry view)         |
 
 `references/api-integration.md` § "Setup checklist" walks through how to find each ID.

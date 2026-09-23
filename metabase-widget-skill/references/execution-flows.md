@@ -29,14 +29,19 @@ Use `AskQuestion` to present these as single-select if the tool is available.
    - Default name: derive from the H1 of widget-review.md.
    - Default description: "Generated from <review file name> on <date>."
    - Default collection: METABASE_DEFAULT_COLLECTION_ID.
-3. For each Ready widget: POST /api/card with the SQL + display + viz settings.
-   - Collect created card IDs + URLs into a results array.
+3. POST /api/dashboard to create the empty dashboard. Capture its ID.
+4. For each Ready widget: POST /api/card with the query + display + viz settings
+   and **`dashboard_id` set to the new dashboard ID**. Do not pass `collection_id`.
+   - Collect created card IDs, URLs and returned `dashcard_id`s into a results array.
    - On failure: record the error in the results array, continue.
-4. POST /api/dashboard to create the empty dashboard. Capture its ID.
 5. Build the dashcards array using the layout heuristic in dashboard-layout.md.
+   Each card already has an auto-added dashcard: reuse its `dashcard_id` with
+   the computed position. Only headings/text get negative IDs.
 6. PUT /api/dashboard/{id} with the dashcards array.
-7. Run scripts/widget_review.py update-results to write URLs + dashboard link back into widget-review.md.
-8. Report to user: dashboard URL, totals, any failures.
+7. Verify every created card returns the same `dashboard_id`; a card that is
+   only in the collection is a failed creation, not a successful dashboard card.
+8. Run scripts/widget_review.py update-results to write URLs + dashboard link back into widget-review.md.
+9. Report to user: dashboard URL, totals, any failures.
 ```
 
 ## Flow 2 — Add widgets to an existing dashboard
@@ -52,11 +57,15 @@ Use `AskQuestion` to present these as single-select if the tool is available.
      - 2+ matches: list them with IDs and collection paths; let the user pick.
 3. GET /api/dashboard/{id} to read existing dashcards. Compute next free grid position
    (see dashboard-layout.md § "Adding to an existing dashboard").
-4. For each Ready widget: POST /api/card. Record results.
-5. PUT /api/dashboard/{id} with the existing dashcards (real positive IDs) + new
-   dashcards (negative IDs, positioned below the existing grid).
-6. update-results → widget-review.md.
-7. Report: dashboard URL, what was added, any failures.
+4. For each Ready widget: POST /api/card with **`dashboard_id` set to the
+   existing dashboard ID**. Do not pass `collection_id`. Record results.
+5. PUT /api/dashboard/{id} with the existing dashcards (unchanged) + the new
+   cards' auto-added dashcards (their returned `dashcard_id`s, repositioned
+   below the existing grid). Do not add negative-ID dashcards for these cards.
+6. Verify every new card returns the existing `dashboard_id`; a card that is
+   only in the collection is a failed creation, not a successful dashboard card.
+7. update-results → widget-review.md.
+8. Report: dashboard URL, what was added, any failures.
 ```
 
 ## Flow 3 — Save as questions only (no dashboard)
@@ -88,7 +97,7 @@ If the user later returns and confirms, re-enter Stage 2 with one of Flows 1–3
 
 ## Partial failure handling
 
-A failure in step 3 (card creation) must never block the rest of the flow:
+A failure in a card-creation step must never block the rest of the flow:
 
 - Continue creating remaining cards.
 - In Flow 1: still create the dashboard with only the successful cards.
